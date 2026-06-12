@@ -1,5 +1,5 @@
-export const containerMaxW = "xl:max-w-6xl xl:mx-auto";
+export const containerMaxW = "2xl:max-w-7xl 2xl:mx-auto";
 
-export const appTitle = "Free Tailwind 4 React Next Typescript dashboard template";
+export const appTitle = "ReelScope AI";
 
 export const getPageTitle = (currentPageTitle: string) => `${currentPageTitle} — ${appTitle}`;

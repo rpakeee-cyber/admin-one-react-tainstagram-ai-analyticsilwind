@@ -1,88 +1,49 @@
 import {
-  mdiAccountCircle,
-  mdiMonitor,
-  mdiGithub,
-  mdiLock,
-  mdiAlertCircle,
-  mdiSquareEditOutline,
-  mdiTable,
-  mdiViewList,
-  mdiTelevisionGuide,
-  mdiResponsive,
-  mdiPalette,
-  mdiVuejs,
+  mdiAccountGroupOutline,
+  mdiCalendarMonthOutline,
+  mdiCogOutline,
+  mdiMovieOpenOutline,
+  mdiPlusCircleOutline,
+  mdiRobotOutline,
+  mdiViewDashboardOutline,
 } from "@mdi/js";
 import { MenuAsideItem } from "../../_interfaces";
 
 const menuAside: MenuAsideItem[] = [
   {
     href: "/dashboard",
-    icon: mdiMonitor,
+    icon: mdiViewDashboardOutline,
     label: "Dashboard",
   },
   {
-    href: "/dashboard/tables",
-    label: "Tables",
-    icon: mdiTable,
+    href: "/dashboard/reels",
+    label: "Reels",
+    icon: mdiMovieOpenOutline,
   },
   {
-    href: "/dashboard/forms",
-    label: "Forms",
-    icon: mdiSquareEditOutline,
+    href: "/dashboard/add-reel",
+    label: "Добавить Reel",
+    icon: mdiPlusCircleOutline,
   },
   {
-    href: "/dashboard/ui",
-    label: "UI",
-    icon: mdiTelevisionGuide,
+    href: "/dashboard/ai-recommendations",
+    label: "AI-инсайты",
+    icon: mdiRobotOutline,
   },
   {
-    href: "/dashboard/responsive",
-    label: "Responsive",
-    icon: mdiResponsive,
+    href: "/dashboard/audience",
+    label: "Аудитория",
+    icon: mdiAccountGroupOutline,
   },
   {
-    href: "/",
-    label: "Styles",
-    icon: mdiPalette,
+    href: "/dashboard/content-plan",
+    label: "Контент-план",
+    icon: mdiCalendarMonthOutline,
   },
   {
-    href: "/dashboard/profile",
-    label: "Profile",
-    icon: mdiAccountCircle,
-  },
-  {
-    href: "/login",
-    label: "Login",
-    icon: mdiLock,
-  },
-  {
-    href: "/error",
-    label: "Error",
-    icon: mdiAlertCircle,
-  },
-  {
-    label: "Dropdown",
-    icon: mdiViewList,
-    menu: [
-      {
-        label: "Item One",
-      },
-      {
-        label: "Item Two",
-      },
-    ],
-  },
-  {
-    href: "https://github.com/justboil/admin-one-react-tailwind",
-    label: "GitHub",
-    icon: mdiGithub,
-    target: "_blank",
-  },
-  {
-    href: "https://github.com/justboil/admin-one-vue-tailwind",
-    label: "Vue version",
-    icon: mdiVuejs,
-    target: "_blank",
+    href: "/dashboard/settings",
+    label: "Настройки",
+    icon: mdiCogOutline,
   },
 ];
 
