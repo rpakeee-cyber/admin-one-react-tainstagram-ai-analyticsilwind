@@ -125,11 +125,52 @@ http://localhost:3000/dashboard
 
 Корневой адрес `http://localhost:3000` автоматически перенаправляет на Dashboard.
 
-## Проверка этапа 3
+### Local development on Windows
+
+- Проект лучше хранить в короткой папке, например `C:\insta`.
+- Не размещайте его глубоко внутри `Downloads` или папок с длинными названиями.
+- Обычный запуск использует Turbopack: `npm run dev`.
+- Если Turbopack на Windows падает из-за ограничения длины пути, запустите webpack-режим:
 
 ```bash
-npx tsc --noEmit
+npm run dev:webpack
+```
+
+Альтернативная команда:
+
+```bash
+npx next dev
+```
+
+## Deployment to Vercel
+
+1. Откройте [vercel.com](https://vercel.com).
+2. Войдите через GitHub.
+3. Нажмите `Add New Project`.
+4. Выберите репозиторий `rpakeee-cyber/admin-one-react-tainstagram-ai-analyticsilwind`.
+5. Убедитесь, что в поле Framework выбран `Next.js`.
+6. Укажите Build Command: `npm run build`.
+7. Output Directory оставьте пустым или со значением по умолчанию.
+8. Укажите Install Command: `npm install`.
+9. Нажмите `Deploy`.
+10. После завершения откройте `https://your-project.vercel.app/dashboard`.
+
+Корневой публичный адрес `https://your-project.vercel.app` также перенаправит на Dashboard.
+Переменные окружения на этом этапе не требуются.
+
+### Хранение данных на Vercel
+
+Reels по-прежнему сохраняются только в `localStorage` конкретного браузера. Публичный деплой
+не переносит данные между устройствами, браузерами или пользователями и не создаёт резервную
+копию. Это временный режим до подключения Supabase на следующем этапе.
+
+## Проверка этапа 4
+
+```bash
+npm run typecheck
+npm run lint
 npm run build
+npm run start
 ```
 
 Для ручной проверки:
@@ -144,8 +185,9 @@ npm run build
 
 ## Следующий этап
 
-Этап 4 может включать импорт данных, аналитику по периодам, резервное копирование,
-подготовку API-слоя и подключение настоящего AI API поверх готового локального engine.
+Этап 5 может включать подключение Supabase, перенос Reels из локального браузера в облачную
+базу и подготовку синхронизации между устройствами. Instagram API, настоящий AI API и
+авторизация пока не подключены.
 
 ## Лицензия
 

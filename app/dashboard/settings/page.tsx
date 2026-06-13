@@ -1,6 +1,12 @@
 "use client";
 
-import { mdiBellOutline, mdiContentSaveOutline, mdiInstagram, mdiShieldCheckOutline } from "@mdi/js";
+import {
+  mdiBellOutline,
+  mdiContentSaveOutline,
+  mdiDatabaseOutline,
+  mdiInstagram,
+  mdiShieldCheckOutline,
+} from "@mdi/js";
 import { Field, Form, Formik } from "formik";
 import { useState } from "react";
 import Button from "../../_components/Button";
@@ -81,6 +87,46 @@ export default function SettingsPage() {
         </CardBox>
 
         <div className="space-y-6">
+          <CardBox>
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+                <Icon path={mdiDatabaseOutline} size="23" w="" h="" />
+              </div>
+              <div>
+                <h2 className="font-bold">Data Storage Status</h2>
+                <p className="text-sm text-gray-400">Текущий режим хранения данных</p>
+              </div>
+            </div>
+
+            <div className="divide-y divide-gray-100 text-sm dark:divide-slate-800">
+              {[
+                ["Current mode", "Local browser storage", true],
+                ["Data location", "Only this device/browser", true],
+                ["Cloud sync", "Not connected yet", false],
+                ["Instagram API", "Not connected yet", false],
+                ["AI API", "Not connected yet", false],
+              ].map(([label, value, isLocal]) => (
+                <div key={String(label)} className="flex items-start justify-between gap-4 py-3">
+                  <span className="text-gray-500 dark:text-slate-400">{label}</span>
+                  <span
+                    className={`text-right font-semibold ${
+                      isLocal
+                        ? "text-emerald-600 dark:text-emerald-300"
+                        : "text-gray-600 dark:text-slate-300"
+                    }`}
+                  >
+                    {value}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
+              Сейчас данные хранятся только в браузере. Если открыть сайт на другом устройстве,
+              данные не появятся. На следующем этапе будет подключена облачная база.
+            </p>
+          </CardBox>
+
           <CardBox>
             <div className="mb-5 flex items-center gap-3">
               <Icon path={mdiBellOutline} size="23" className="text-fuchsia-600" w="" h="" />

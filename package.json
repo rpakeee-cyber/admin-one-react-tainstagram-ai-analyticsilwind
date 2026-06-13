@@ -7,9 +7,11 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:webpack": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "format": "prettier 'app/**/*.{tsx,ts,js}' --write"
   },
   "dependencies": {
