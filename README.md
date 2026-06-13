@@ -97,11 +97,13 @@ npm install
 npm run dev
 ```
 
-Откройте:
+Откройте Dashboard:
 
 ```text
-http://localhost:3000
+http://localhost:3000/dashboard
 ```
+
+Корневой адрес `http://localhost:3000` автоматически перенаправляет на Dashboard.
 
 ## Проверка этапа 2
 

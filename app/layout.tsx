@@ -10,7 +10,7 @@ const description =
 export const metadata: Metadata = {
   title,
   description,
-  icons: "/admin-one-react-tailwind/favicon.png",
+  icons: "/favicon.png",
 };
 
 export default function RootLayout({
