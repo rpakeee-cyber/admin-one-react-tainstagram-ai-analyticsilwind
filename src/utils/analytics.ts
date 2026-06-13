@@ -1,13 +1,45 @@
-import type { AIInsight, Reel, ReelInsight, ReelTopic } from "../types";
+import type {
+  AnalysisStatus,
+  ContentDirection,
+  ContentDirectionSignal,
+  ContentGoal,
+  FormatAnalysis,
+  HookAnalysis,
+  HookPerformanceGroup,
+  PostingDayAnalysis,
+  PostingDaysAnalysis,
+  Reel,
+  ReelFormat,
+  ReelRankingMetric,
+  ReelTopic,
+  TopicAnalysis,
+  WeakReelRankingMetric,
+} from "../types";
+
+const dayNames = [
+  "Воскресенье",
+  "Понедельник",
+  "Вторник",
+  "Среда",
+  "Четверг",
+  "Пятница",
+  "Суббота",
+];
+
+const finite = (value: number) => (Number.isFinite(value) ? value : 0);
 
 const clamp = (value: number, min: number, max: number) =>
-  Math.min(Math.max(Number.isFinite(value) ? value : min, min), max);
+  Math.min(Math.max(finite(value), min), max);
 
 const safeRate = (value: number, denominator: number) =>
-  denominator > 0 ? (Math.max(value, 0) / denominator) * 100 : 0;
+  denominator > 0 ? (Math.max(finite(value), 0) / denominator) * 100 : 0;
 
 const average = (values: number[]) =>
-  values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0;
+  values.length
+    ? finite(values.reduce((total, value) => total + finite(value), 0) / values.length)
+    : 0;
+
+const sum = (values: number[]) => values.reduce((total, value) => total + finite(value), 0);
 
 const scoreAgainstAverage = (value: number, averageValue: number) => {
   if (averageValue <= 0) {
@@ -17,19 +49,67 @@ const scoreAgainstAverage = (value: number, averageValue: number) => {
   return clamp(value / (averageValue * 1.5), 0, 1);
 };
 
+const getRelativeStatus = (
+  composite: number,
+  sampleCount: number,
+  totalReels: number,
+): AnalysisStatus => {
+  if (sampleCount === 0 || totalReels < 3) {
+    return "medium";
+  }
+
+  if (composite >= 1.08) {
+    return "strong";
+  }
+
+  if (composite <= 0.82) {
+    return "weak";
+  }
+
+  return "medium";
+};
+
+const relativeRatio = (value: number, baseline: number) => {
+  if (baseline <= 0) {
+    return value > 0 ? 1 : 0;
+  }
+
+  return clamp(value / baseline, 0, 2);
+};
+
+const parsePublishDate = (value: string) => {
+  const date = new Date(`${value}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const getDataLevel = (reels: Reel[]): ContentDirection["summary"]["dataLevel"] => {
+  if (reels.length === 0) {
+    return "empty";
+  }
+
+  return reels.length < 3 ? "low" : "personalized";
+};
+
 export const formatNumber = (value: number) =>
   new Intl.NumberFormat("ru-RU", {
-    notation: Math.abs(value) >= 10000 ? "compact" : "standard",
+    notation: Math.abs(finite(value)) >= 10000 ? "compact" : "standard",
     maximumFractionDigits: 1,
-  }).format(Number.isFinite(value) ? value : 0);
+  }).format(finite(value));
 
-export const formatDate = (value: string, options?: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat("ru-RU", {
+export const formatDate = (value: string, options?: Intl.DateTimeFormatOptions) => {
+  const date = parsePublishDate(value);
+
+  if (!date) {
+    return "Дата не указана";
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
     day: "numeric",
     month: "short",
     year: "numeric",
     ...options,
-  }).format(new Date(`${value}T12:00:00`));
+  }).format(date);
+};
 
 export const calculateEngagementRate = (reel: Reel) => {
   const denominator = reel.reach > 0 ? reel.reach : reel.views;
@@ -76,11 +156,9 @@ export const calculateReelScore = (reel: Reel, allReels: Reel[]) => {
     weightedParts.push({ value: clamp(reel.retentionRate / 100, 0, 1), weight: 0.08 });
   }
 
-  const totalWeight = weightedParts.reduce((total, part) => total + part.weight, 0);
+  const totalWeight = sum(weightedParts.map((part) => part.weight));
   const weightedScore =
-    totalWeight > 0
-      ? weightedParts.reduce((total, part) => total + part.value * part.weight, 0) / totalWeight
-      : 0;
+    totalWeight > 0 ? sum(weightedParts.map((part) => part.value * part.weight)) / totalWeight : 0;
 
   return Math.round(clamp(1 + weightedScore * 9, 1, 10) * 10) / 10;
 };
@@ -88,13 +166,13 @@ export const calculateReelScore = (reel: Reel, allReels: Reel[]) => {
 export const getReelTotals = (items: Reel[]) =>
   items.reduce(
     (totals, reel) => ({
-      views: totals.views + reel.views,
-      reach: totals.reach + reel.reach,
-      likes: totals.likes + reel.likes,
-      comments: totals.comments + reel.comments,
-      saves: totals.saves + reel.saves,
-      shares: totals.shares + reel.shares,
-      newFollowers: totals.newFollowers + reel.newFollowers,
+      views: totals.views + finite(reel.views),
+      reach: totals.reach + finite(reel.reach),
+      likes: totals.likes + finite(reel.likes),
+      comments: totals.comments + finite(reel.comments),
+      saves: totals.saves + finite(reel.saves),
+      shares: totals.shares + finite(reel.shares),
+      newFollowers: totals.newFollowers + finite(reel.newFollowers),
     }),
     {
       views: 0,
@@ -112,143 +190,316 @@ export const calculateAverageViews = (items: Reel[]) => average(items.map((reel)
 export const calculateAverageEngagement = (items: Reel[]) =>
   average(items.map(calculateEngagementRate));
 
+export const calculateAverageFollowerConversion = (items: Reel[]) =>
+  average(items.map(calculateFollowerConversion));
+
 export const calculateAverageScore = (items: Reel[]) =>
   average(items.map((reel) => calculateReelScore(reel, items)));
 
-export const getBestReel = (items: Reel[]) =>
-  [...items].sort((a, b) => calculateReelScore(b, items) - calculateReelScore(a, items))[0];
+const getRankingValue = (
+  reel: Reel,
+  metric: ReelRankingMetric | WeakReelRankingMetric,
+  allReels: Reel[],
+) => {
+  switch (metric) {
+    case "views":
+      return finite(reel.views);
+    case "engagementRate":
+      return calculateEngagementRate(reel);
+    case "saves":
+      return finite(reel.saves);
+    case "shares":
+      return finite(reel.shares);
+    case "newFollowers":
+      return finite(reel.newFollowers);
+    case "followerConversion":
+      return calculateFollowerConversion(reel);
+    case "score":
+      return calculateReelScore(reel, allReels);
+    default:
+      return 0;
+  }
+};
 
-export const getWorstReel = (items: Reel[]) =>
-  [...items].sort((a, b) => calculateReelScore(a, items) - calculateReelScore(b, items))[0];
+export const getTopReels = (reels: Reel[], metric: ReelRankingMetric, limit = 3) =>
+  [...reels]
+    .sort(
+      (a, b) =>
+        getRankingValue(b, metric, reels) - getRankingValue(a, metric, reels) ||
+        b.publishDate.localeCompare(a.publishDate),
+    )
+    .slice(0, Math.max(0, limit));
 
-export const getTopTopicByAverageViews = (items: Reel[]) => {
-  const topics = items.reduce<Record<string, { views: number; count: number }>>((result, reel) => {
-    const current = result[reel.topic] ?? { views: 0, count: 0 };
-    result[reel.topic] = {
-      views: current.views + reel.views,
-      count: current.count + 1,
-    };
+export const getWeakReels = (reels: Reel[], metric: WeakReelRankingMetric, limit = 3) =>
+  [...reels]
+    .sort(
+      (a, b) =>
+        getRankingValue(a, metric, reels) - getRankingValue(b, metric, reels) ||
+        b.publishDate.localeCompare(a.publishDate),
+    )
+    .slice(0, Math.max(0, limit));
+
+export const getBestReel = (items: Reel[]) => getTopReels(items, "score", 1)[0];
+
+export const getWorstReel = (items: Reel[]) => getWeakReels(items, "score", 1)[0];
+
+export const analyzeTopics = (reels: Reel[]): TopicAnalysis[] => {
+  if (!reels.length) {
+    return [];
+  }
+
+  const baselineViews = calculateAverageViews(reels);
+  const baselineEngagement = calculateAverageEngagement(reels);
+  const baselineScore = calculateAverageScore(reels);
+  const grouped = reels.reduce<Partial<Record<ReelTopic, Reel[]>>>((result, reel) => {
+    result[reel.topic] = [...(result[reel.topic] ?? []), reel];
     return result;
   }, {});
 
-  return (
-    (Object.entries(topics).sort(
-      ([, a], [, b]) => b.views / b.count - a.views / a.count,
-    )[0]?.[0] as ReelTopic | undefined) ?? null
-  );
+  return Object.entries(grouped)
+    .map(([topic, topicReels]) => {
+      const items = topicReels ?? [];
+      const averageViews = calculateAverageViews(items);
+      const averageEngagementRate = calculateAverageEngagement(items);
+      const averageScore = average(items.map((reel) => calculateReelScore(reel, reels)));
+      const composite =
+        relativeRatio(averageViews, baselineViews) * 0.45 +
+        relativeRatio(averageEngagementRate, baselineEngagement) * 0.3 +
+        relativeRatio(averageScore, baselineScore) * 0.25;
+
+      return {
+        topic: topic as ReelTopic,
+        count: items.length,
+        averageViews,
+        averageEngagementRate,
+        averageSaves: average(items.map((reel) => reel.saves)),
+        averageShares: average(items.map((reel) => reel.shares)),
+        totalNewFollowers: sum(items.map((reel) => reel.newFollowers)),
+        averageScore,
+        status: getRelativeStatus(composite, items.length, reels.length),
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.averageScore - a.averageScore || b.averageViews - a.averageViews || b.count - a.count,
+    );
 };
 
-export const getReelInsight = (reel: Reel, allReels: Reel[]): ReelInsight => {
-  const averageViews = calculateAverageViews(allReels);
-  const engagement = calculateEngagementRate(reel);
-  const averageEngagement = calculateAverageEngagement(allReels);
-  const saveRate = calculateSaveRate(reel);
-  const followerConversion = calculateFollowerConversion(reel);
-  const topTopic = getTopTopicByAverageViews(allReels);
+export const analyzeFormats = (reels: Reel[]): FormatAnalysis[] => {
+  if (!reels.length) {
+    return [];
+  }
 
-  const strength =
-    saveRate >= 3
-      ? `Полезность: save rate ${saveRate.toFixed(1)}% показывает, что ролик хочется сохранить.`
-      : engagement >= averageEngagement
-        ? `Вовлечённость ${engagement.toFixed(1)}% выше среднего по вашим Reels.`
-        : reel.views >= averageViews
-          ? "Ролик хорошо набирает просмотры относительно остальных публикаций."
-          : "Ролик даёт полезную точку сравнения для следующих экспериментов.";
+  const baselineViews = calculateAverageViews(reels);
+  const baselineEngagement = calculateAverageEngagement(reels);
+  const baselineConversion = calculateAverageFollowerConversion(reels);
+  const baselineScore = calculateAverageScore(reels);
+  const grouped = reels.reduce<Partial<Record<ReelFormat, Reel[]>>>((result, reel) => {
+    result[reel.format] = [...(result[reel.format] ?? []), reel];
+    return result;
+  }, {});
 
-  const weakness =
-    reel.retentionRate > 0 && reel.retentionRate < 45
-      ? `Удержание ${reel.retentionRate.toFixed(0)}%: вероятно, середину ролика стоит сократить.`
-      : reel.views > averageViews && followerConversion < 0.4
-        ? "Охват хороший, но ролик слабо переводит зрителей в подписку."
-        : engagement < averageEngagement
-          ? "Вовлечённость ниже среднего: аудитории не хватает повода ответить или сохранить."
-          : "Явной слабой зоны нет, но следующий тест стоит сфокусировать на первых секундах.";
+  return Object.entries(grouped)
+    .map(([format, formatReels]) => {
+      const items = formatReels ?? [];
+      const averageViews = calculateAverageViews(items);
+      const averageEngagementRate = calculateAverageEngagement(items);
+      const averageFollowerConversion = calculateAverageFollowerConversion(items);
+      const averageScore = average(items.map((reel) => calculateReelScore(reel, reels)));
+      const composite =
+        relativeRatio(averageViews, baselineViews) * 0.35 +
+        relativeRatio(averageEngagementRate, baselineEngagement) * 0.25 +
+        relativeRatio(averageFollowerConversion, baselineConversion) * 0.2 +
+        relativeRatio(averageScore, baselineScore) * 0.2;
+
+      return {
+        format: format as ReelFormat,
+        count: items.length,
+        averageViews,
+        averageEngagementRate,
+        averageFollowerConversion,
+        averageScore,
+        status: getRelativeStatus(composite, items.length, reels.length),
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.averageScore - a.averageScore || b.averageViews - a.averageViews || b.count - a.count,
+    );
+};
+
+const summarizeHookGroup = (reels: Reel[], allReels: Reel[]): HookPerformanceGroup => ({
+  count: reels.length,
+  averageViews: calculateAverageViews(reels),
+  averageEngagementRate: calculateAverageEngagement(reels),
+  averageScore: average(reels.map((reel) => calculateReelScore(reel, allReels))),
+});
+
+export const analyzeHooks = (reels: Reel[]): HookAnalysis => {
+  const withHook = reels.filter((reel) => reel.hook.trim().length > 0);
+  const withoutHook = reels.filter((reel) => reel.hook.trim().length === 0);
+  const rankedHooks = getTopReels(withHook, "score", 5);
+  const withHookSummary = summarizeHookGroup(withHook, reels);
+  const withoutHookSummary = summarizeHookGroup(withoutHook, reels);
 
   return {
-    strength,
-    weakness,
-    repeatTopic:
-      reel.topic === topTopic
-        ? `Да. Тема «${reel.topic}» лидирует по средним просмотрам.`
-        : `Тему можно повторить с новым углом, но текущий лидер — «${topTopic ?? reel.topic}».`,
-    nextStep:
-      reel.hook.trim().length < 35
-        ? "Сделайте hook конкретнее: добавьте результат, цифру или понятный конфликт."
-        : followerConversion < 0.4
-          ? "Добавьте ранний и ясный призыв подписаться ради продолжения темы."
-          : "Сохраните структуру и протестируйте более короткую версию с тем же обещанием.",
+    withHook: withHookSummary,
+    withoutHook: withoutHookSummary,
+    topHooks: rankedHooks.map((reel) => ({
+      reelId: reel.id,
+      reelTitle: reel.title,
+      hook: reel.hook.trim(),
+      score: calculateReelScore(reel, reels),
+    })),
+    repeatHooks: Array.from(
+      new Set(rankedHooks.map((reel) => reel.hook.trim()).filter(Boolean)),
+    ).slice(0, 3),
+    shouldPrioritizeHooks:
+      withoutHook.length > 0 &&
+      (withHook.length === 0 || withHookSummary.averageScore >= withoutHookSummary.averageScore),
   };
 };
 
-export const generateDashboardInsight = (items: Reel[]): AIInsight => {
-  if (!items.length) {
-    return {
-      id: "local-empty",
-      title: "Добавьте первый Reel",
-      summary: "Локальная аналитика появится после сохранения хотя бы одного ролика.",
-      recommendation: "Начните с ручного ввода основных метрик.",
-      impact: "Первый ориентир для роста",
-      priority: "medium",
-      category: "topic",
-    };
-  }
+export const analyzePostingDays = (reels: Reel[]): PostingDaysAnalysis => {
+  const grouped = reels.reduce<Record<number, Reel[]>>((result, reel) => {
+    const date = parsePublishDate(reel.publishDate);
 
-  const topTopic = getTopTopicByAverageViews(items) ?? items[0].topic;
-  const averageSaveRate = average(items.map(calculateSaveRate));
-  const averageViews = calculateAverageViews(items);
-  const averageFollowers = average(items.map(calculateFollowerConversion));
-  const strongestEngagement = [...items].sort(
-    (a, b) => calculateEngagementRate(b) - calculateEngagementRate(a),
-  )[0];
+    if (!date) {
+      return result;
+    }
 
-  if (averageSaveRate >= 3) {
-    return {
-      id: "local-saves",
-      title: "Полезный контент работает",
-      summary: `Средний save rate составляет ${averageSaveRate.toFixed(1)}%. Аудитория возвращается к вашим материалам.`,
-      recommendation: `Развивайте тему «${topTopic}» в формате серий и чек-листов.`,
-      impact: "Больше сохранений и повторных просмотров",
-      priority: "high",
-      category: "format",
-    };
-  }
+    const dayIndex = date.getDay();
+    result[dayIndex] = [...(result[dayIndex] ?? []), reel];
+    return result;
+  }, {});
 
-  if (averageViews >= 50000 && averageFollowers < 0.4) {
-    return {
-      id: "local-conversion",
-      title: "Охват есть, подписок можно получать больше",
-      summary: "Ролики находят зрителей, но не всегда объясняют, зачем оставаться с автором.",
-      recommendation:
-        "Добавляйте в первую половину ролика обещание следующего полезного материала.",
-      impact: "Рост конверсии в подписку",
-      priority: "high",
-      category: "hook",
-    };
-  }
+  const baselineViews = calculateAverageViews(reels);
+  const baselineEngagement = calculateAverageEngagement(reels);
+  const baselineScore = calculateAverageScore(reels);
+  const days = Object.entries(grouped)
+    .map(([dayIndexValue, dayReels]) => {
+      const dayIndex = Number(dayIndexValue);
+      const averageViews = calculateAverageViews(dayReels);
+      const averageEngagementRate = calculateAverageEngagement(dayReels);
+      const averageScore = average(dayReels.map((reel) => calculateReelScore(reel, reels)));
+      const composite =
+        relativeRatio(averageViews, baselineViews) * 0.5 +
+        relativeRatio(averageEngagementRate, baselineEngagement) * 0.25 +
+        relativeRatio(averageScore, baselineScore) * 0.25;
 
-  if (
-    strongestEngagement &&
-    strongestEngagement.views < averageViews &&
-    calculateEngagementRate(strongestEngagement) > calculateAverageEngagement(items)
-  ) {
-    return {
-      id: "local-hook",
-      title: "Сильной теме нужен лучший hook",
-      summary: `Ролик «${strongestEngagement.title}» хорошо вовлекает тех, кто его увидел, но получает мало просмотров.`,
-      recommendation: "Перезапустите тему с более конкретной первой фразой и коротким вступлением.",
-      impact: "Потенциал дополнительного охвата",
-      priority: "medium",
-      category: "hook",
-    };
-  }
+      return {
+        dayIndex,
+        dayName: dayNames[dayIndex],
+        count: dayReels.length,
+        averageViews,
+        averageEngagementRate,
+        averageFollowerConversion: calculateAverageFollowerConversion(dayReels),
+        averageScore,
+        status: getRelativeStatus(composite, dayReels.length, reels.length),
+      } satisfies PostingDayAnalysis;
+    })
+    .sort(
+      (a, b) =>
+        b.averageViews - a.averageViews || b.averageScore - a.averageScore || b.count - a.count,
+    );
 
   return {
-    id: "local-topic",
-    title: `Развивайте тему «${topTopic}»`,
-    summary: "Она лидирует по средним просмотрам среди сохранённых роликов.",
-    recommendation: "Сделайте серию из двух-трёх роликов с разными hook и форматами.",
-    impact: "Более предсказуемый рост просмотров",
-    priority: "high",
-    category: "topic",
+    days,
+    bestDay: days[0] ?? null,
+    bestDays: days.slice(0, 3),
+    weakDays: [...days].reverse().slice(0, Math.min(2, days.length)),
+  };
+};
+
+export const getTopTopicByAverageViews = (items: Reel[]) =>
+  [...analyzeTopics(items)].sort((a, b) => b.averageViews - a.averageViews)[0]?.topic ?? null;
+
+const toSignal = (
+  kind: ContentDirectionSignal["kind"],
+  value: string,
+  status: AnalysisStatus,
+  score: number,
+): ContentDirectionSignal => ({
+  kind,
+  value,
+  status,
+  score: finite(score),
+});
+
+const getPrimaryRisk = (
+  reels: Reel[],
+  hookAnalysis: HookAnalysis,
+): ContentDirection["summary"]["primaryRisk"] => {
+  if (reels.length < 3) {
+    return "limited-data";
+  }
+
+  if (hookAnalysis.shouldPrioritizeHooks) {
+    return "missing-hooks";
+  }
+
+  if (calculateAverageFollowerConversion(reels) < 0.4) {
+    return "low-follower-conversion";
+  }
+
+  if (calculateAverageEngagement(reels) < 3) {
+    return "low-engagement";
+  }
+
+  return "none";
+};
+
+export const getContentDirection = (reels: Reel[]): ContentDirection => {
+  const topics = analyzeTopics(reels);
+  const formats = analyzeFormats(reels);
+  const postingDays = analyzePostingDays(reels);
+  const hooks = analyzeHooks(reels);
+  const topTopics = topics.filter((item) => item.status === "strong").slice(0, 3);
+  const topFormats = formats.filter((item) => item.status === "strong").slice(0, 3);
+  const resolvedTopTopics = topTopics.length ? topTopics : topics.slice(0, 3);
+  const resolvedTopFormats = topFormats.length ? topFormats : formats.slice(0, 3);
+  const weakTopics = topics.filter((item) => item.status === "weak").slice(0, 3);
+  const weakFormats = formats.filter((item) => item.status === "weak").slice(0, 3);
+  const fallbackTopic: ReelTopic = resolvedTopTopics[0]?.topic ?? "Работа";
+  const fallbackFormat: ReelFormat = resolvedTopFormats[0]?.format ?? "Day in Life";
+  const goals: ContentGoal[] = ["Охват", "Доверие", "Подписки"];
+
+  return {
+    topTopics: resolvedTopTopics,
+    weakTopics,
+    topFormats: resolvedTopFormats,
+    weakFormats,
+    bestPostingDays: postingDays.bestDays,
+    repeatRecommendations: [
+      ...resolvedTopTopics.map((item) =>
+        toSignal("topic", item.topic, item.status, item.averageScore),
+      ),
+      ...resolvedTopFormats.map((item) =>
+        toSignal("format", item.format, item.status, item.averageScore),
+      ),
+      ...postingDays.bestDays
+        .slice(0, 1)
+        .map((item) => toSignal("day", item.dayName, item.status, item.averageScore)),
+    ],
+    stopRecommendations: [
+      ...weakTopics.map((item) => toSignal("topic", item.topic, item.status, item.averageScore)),
+      ...weakFormats.map((item) => toSignal("format", item.format, item.status, item.averageScore)),
+    ],
+    nextIdeas: goals.map((goal, index) => ({
+      topic:
+        resolvedTopTopics[index % Math.max(resolvedTopTopics.length, 1)]?.topic ?? fallbackTopic,
+      format:
+        resolvedTopFormats[index % Math.max(resolvedTopFormats.length, 1)]?.format ??
+        fallbackFormat,
+      goal,
+    })),
+    hookSuggestions: hooks.repeatHooks,
+    summary: {
+      dataLevel: getDataLevel(reels),
+      topTopic: resolvedTopTopics[0]?.topic ?? null,
+      topFormat: resolvedTopFormats[0]?.format ?? null,
+      bestDay: postingDays.bestDay?.dayName ?? null,
+      primaryRisk: getPrimaryRisk(reels, hooks),
+    },
   };
 };

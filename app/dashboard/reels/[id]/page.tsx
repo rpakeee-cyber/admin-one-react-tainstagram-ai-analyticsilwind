@@ -19,6 +19,7 @@ import CardBox from "../../../_components/CardBox";
 import Icon from "../../../_components/Icon";
 import SectionMain from "../../../_components/Section/Main";
 import { useReels } from "../../../../src/hooks/useReels";
+import { generateReelInsight } from "../../../../src/services/aiRecommendationEngine";
 import { deleteReel, setReelsNotice } from "../../../../src/services/reelsStorage";
 import type { Reel } from "../../../../src/types";
 import {
@@ -30,9 +31,9 @@ import {
   calculateShareRate,
   formatDate,
   formatNumber,
-  getReelInsight,
 } from "../../../../src/utils/analytics";
 import PageIntro from "../../_components/Analytics/PageIntro";
+import RecommendationBadge from "../../_components/Analytics/RecommendationBadge";
 import DeleteReelModal from "../../_components/Reels/DeleteReelModal";
 
 const metricIcons = [
@@ -78,7 +79,7 @@ export default function ReelDetailsPage() {
   }
 
   const score = calculateReelScore(reel, reels);
-  const insight = getReelInsight(reel, reels);
+  const insight = generateReelInsight(reel, reels);
   const metrics = [
     ["Просмотры", formatNumber(reel.views)],
     ["Лайки", formatNumber(reel.likes)],
@@ -218,21 +219,55 @@ export default function ReelDetailsPage() {
 
         <CardBox>
           <p className="text-xs font-semibold tracking-[0.18em] text-fuchsia-600 uppercase">
-            Локальный анализ
+            AI-разбор ролика
           </p>
-          <h2 className="mt-2 text-xl font-bold">Что можно вынести из ролика</h2>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-bold">Что можно вынести из ролика</h2>
+            <RecommendationBadge
+              tone={insight.score >= 7 ? "strong" : insight.score < 5 ? "weak" : "medium"}
+              label={`Score ${insight.score.toFixed(1)}`}
+            />
+          </div>
           <div className="mt-6 space-y-4">
             {[
               ["Сильная сторона", insight.strength, "bg-emerald-50 dark:bg-emerald-500/10"],
               ["Слабая сторона", insight.weakness, "bg-rose-50 dark:bg-rose-500/10"],
+              ["Почему сработало", insight.whyWorked, "bg-blue-50 dark:bg-blue-500/10"],
+              [
+                "Конверсия в подписку",
+                insight.whyLowConversion,
+                "bg-amber-50 dark:bg-amber-500/10",
+              ],
               ["Повторять тему?", insight.repeatTopic, "bg-violet-50 dark:bg-violet-500/10"],
-              ["Следующий шаг", insight.nextStep, "bg-cyan-50 dark:bg-cyan-500/10"],
+              ["Что улучшить", insight.improveNext, "bg-cyan-50 dark:bg-cyan-500/10"],
             ].map(([label, value, className]) => (
               <div key={label} className={`rounded-2xl p-4 ${className}`}>
                 <p className="text-xs font-bold tracking-wide uppercase">{label}</p>
                 <p className="mt-2 text-sm leading-6">{value}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-6">
+            <p className="text-xs font-bold tracking-wide text-gray-400 uppercase">
+              Три варианта hook
+            </p>
+            <div className="mt-3 space-y-3">
+              {insight.hookSuggestions.map((hook, index) => (
+                <div
+                  key={hook}
+                  className="flex gap-3 rounded-2xl bg-gray-50 p-4 dark:bg-slate-800/70"
+                >
+                  <span className="font-black text-fuchsia-600">{index + 1}</span>
+                  <p className="text-sm leading-6">{hook}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-6 rounded-2xl bg-linear-to-r from-violet-600 to-fuchsia-600 p-5 text-white">
+            <p className="text-xs font-bold tracking-wide text-white/70 uppercase">
+              Идея продолжения
+            </p>
+            <p className="mt-2 font-bold">{insight.continuationIdea}</p>
           </div>
         </CardBox>
       </div>

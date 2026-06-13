@@ -23,9 +23,9 @@ export default function AIInsightCard({ insight, featured = false }: Props) {
           <div className="mb-5 flex items-center justify-between">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold backdrop-blur">
               <Icon path={mdiLightbulbOnOutline} size="16" w="" h="" />
-              AI Insight недели
+              Главный локальный совет
             </span>
-            <span className="text-xs font-medium text-white/70">Demo analysis</span>
+            <span className="text-xs font-medium text-white/70">Rule-based analysis</span>
           </div>
           <h2 className="max-w-2xl text-2xl font-bold sm:text-3xl">{insight.title}</h2>
           <p className="mt-3 max-w-2xl leading-7 text-white/80">{insight.summary}</p>
@@ -54,7 +54,9 @@ export default function AIInsightCard({ insight, featured = false }: Props) {
               {priorityLabel[insight.priority]}
             </span>
           </div>
-          <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-slate-400">{insight.summary}</p>
+          <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-slate-400">
+            {insight.summary}
+          </p>
           <p className="mt-4 text-sm font-medium text-gray-800 dark:text-slate-200">
             {insight.recommendation}
           </p>

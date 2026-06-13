@@ -2,30 +2,35 @@
 
 import {
   mdiAccountMultiplePlusOutline,
+  mdiAlertCircleOutline,
+  mdiCalendarStar,
   mdiChartTimelineVariant,
+  mdiLightbulbOnOutline,
   mdiEyeOutline,
   mdiMovieOpenOutline,
 } from "@mdi/js";
 import Button from "../_components/Button";
 import CardBox from "../_components/CardBox";
+import Icon from "../_components/Icon";
 import SectionMain from "../_components/Section/Main";
 import { useReels } from "../../src/hooks/useReels";
+import { generateDashboardOverview } from "../../src/services/aiRecommendationEngine";
 import type { Metric } from "../../src/types";
 import {
   calculateAverageEngagement,
   calculateAverageViews,
   calculateReelScore,
   formatNumber,
-  generateDashboardInsight,
   getBestReel,
   getReelTotals,
-  getTopTopicByAverageViews,
   getWorstReel,
 } from "../../src/utils/analytics";
 import AIInsightCard from "./_components/Analytics/AIInsightCard";
+import DataConfidenceNotice from "./_components/Analytics/DataConfidenceNotice";
 import MetricCard from "./_components/Analytics/MetricCard";
 import PageIntro from "./_components/Analytics/PageIntro";
 import PerformanceChart from "./_components/Analytics/PerformanceChart";
+import RecommendationBadge from "./_components/Analytics/RecommendationBadge";
 import ReelCard from "./_components/Analytics/ReelCard";
 import ReelsTable from "./_components/Analytics/ReelsTable";
 import EmptyReelsState from "./_components/Reels/EmptyReelsState";
@@ -58,8 +63,7 @@ export default function DashboardPage() {
   const totals = getReelTotals(reels);
   const bestReel = getBestReel(reels);
   const worstReel = getWorstReel(reels);
-  const topTopic = getTopTopicByAverageViews(reels);
-  const insight = generateDashboardInsight(reels);
+  const overview = generateDashboardOverview(reels);
   const metrics: Metric[] = [
     {
       id: "reels",
@@ -106,6 +110,8 @@ export default function DashboardPage() {
         }
       />
 
+      <DataConfidenceNotice reelsCount={reels.length} />
+
       {reels.length === 0 ? (
         <EmptyReelsState />
       ) : (
@@ -122,7 +128,106 @@ export default function DashboardPage() {
           </div>
 
           <div className="mb-6">
-            <AIInsightCard insight={insight} featured />
+            <AIInsightCard insight={overview.insight} featured />
+          </div>
+
+          <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <CardBox>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold tracking-[0.16em] text-fuchsia-600 uppercase">
+                    Контент-сигналы
+                  </p>
+                  <h2 className="mt-1 text-lg font-bold">Топ-3 темы</h2>
+                </div>
+                <RecommendationBadge tone="repeat" />
+              </div>
+              <div className="mt-5 space-y-3">
+                {overview.topTopics.map((topic, index) => (
+                  <div
+                    key={topic.topic}
+                    className="flex items-center justify-between gap-4 rounded-2xl bg-gray-50 p-4 dark:bg-slate-800/70"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-bold">
+                        {index + 1}. {topic.topic}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">
+                        {formatNumber(topic.averageViews)} просмотров · ER{" "}
+                        {topic.averageEngagementRate.toFixed(1)}%
+                      </p>
+                    </div>
+                    <RecommendationBadge tone={topic.status} />
+                  </div>
+                ))}
+              </div>
+            </CardBox>
+
+            <CardBox>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold tracking-[0.16em] text-violet-600 uppercase">
+                    Подача
+                  </p>
+                  <h2 className="mt-1 text-lg font-bold">Топ-3 формата</h2>
+                </div>
+                <RecommendationBadge tone="test" />
+              </div>
+              <div className="mt-5 space-y-3">
+                {overview.topFormats.map((format, index) => (
+                  <div
+                    key={format.format}
+                    className="flex items-center justify-between gap-4 rounded-2xl bg-gray-50 p-4 dark:bg-slate-800/70"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-bold">
+                        {index + 1}. {format.format}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">
+                        {format.averageScore.toFixed(1)} score ·{" "}
+                        {format.averageFollowerConversion.toFixed(2)}% в подписку
+                      </p>
+                    </div>
+                    <RecommendationBadge tone={format.status} />
+                  </div>
+                ))}
+              </div>
+            </CardBox>
+          </div>
+
+          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {[
+              {
+                icon: mdiCalendarStar,
+                label: "Лучший день публикации",
+                value: overview.bestPostingDay,
+                className: "text-violet-600 bg-violet-50 dark:bg-violet-500/10",
+              },
+              {
+                icon: mdiAlertCircleOutline,
+                label: "Главный риск",
+                value: overview.mainRisk,
+                className: "text-rose-600 bg-rose-50 dark:bg-rose-500/10",
+              },
+              {
+                icon: mdiLightbulbOnOutline,
+                label: "Следующий лучший шаг",
+                value: overview.nextStep,
+                className: "text-cyan-600 bg-cyan-50 dark:bg-cyan-500/10",
+              },
+            ].map((item) => (
+              <CardBox key={item.label}>
+                <div
+                  className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.className}`}
+                >
+                  <Icon path={item.icon} size="22" w="" h="" />
+                </div>
+                <p className="mt-4 text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                  {item.label}
+                </p>
+                <p className="mt-2 text-sm leading-6 font-semibold">{item.value}</p>
+              </CardBox>
+            ))}
           </div>
 
           <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.55fr_1fr]">
@@ -137,13 +242,6 @@ export default function DashboardPage() {
             </CardBox>
 
             <div className="grid gap-6">
-              <CardBox>
-                <p className="text-sm font-medium text-gray-400">Топ-тема</p>
-                <h3 className="mt-2 text-2xl font-bold">{topTopic ?? "Нет данных"}</h3>
-                <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-slate-400">
-                  Лидирует по средним просмотрам, а не только по одному удачному ролику.
-                </p>
-              </CardBox>
               <CardBox>
                 <p className="text-sm font-medium text-gray-400">Лучший Reel</p>
                 <h3 className="mt-2 line-clamp-2 text-lg font-bold">{bestReel?.title}</h3>
