@@ -14,6 +14,18 @@
 
 Backend, Instagram API и внешний AI API пока не используются.
 
+## Этап 5
+
+Приложение подготовлено к двум режимам хранения:
+
+- `local` — текущий `localStorage` браузера;
+- `supabase` — облачная таблица `reels` через Supabase.
+
+Страницы используют единый provider из `src/services/reelsDataProvider.ts` и не зависят от
+конкретного источника. Если Supabase mode включён, но credentials отсутствуют или облачный
+запрос завершился ошибкой, приложение автоматически продолжает работу через localStorage.
+Автоматической миграции локальных Reels в Supabase пока нет.
+
 ## Этап 3
 
 На третьем этапе добавлен локальный smart recommendation engine:
@@ -70,12 +82,17 @@ reelscope.reels.v1
 ```
 
 Данные не отправляются на сервер и не синхронизируются между устройствами или браузерами.
+Это поведение сохраняется в режиме `NEXT_PUBLIC_DATA_MODE=local` и используется как fallback.
 
 Основные файлы:
 
 - `src/types/index.ts` — типы Reel, темы, форматы и формы;
 - `src/data/demoData.ts` — демонстрационные Reels;
 - `src/services/reelsStorage.ts` — CRUD и работа с `localStorage`;
+- `src/services/reelsLocalStorage.ts` — локальная реализация CRUD и сообщения между страницами;
+- `src/services/supabaseClient.ts` — безопасная инициализация Supabase client;
+- `src/services/reelsSupabaseStorage.ts` — облачный CRUD и маппинг колонок;
+- `src/services/reelsDataProvider.ts` — выбор режима и localStorage fallback;
 - `src/services/aiRecommendationEngine.ts` — текстовые локальные рекомендации;
 - `src/hooks/useReels.ts` — клиентская подписка компонентов на изменения;
 - `src/utils/analytics.ts` — безопасные аналитические расчёты и группировки.
@@ -156,15 +173,47 @@ npx next dev
 10. После завершения откройте `https://your-project.vercel.app/dashboard`.
 
 Корневой публичный адрес `https://your-project.vercel.app` также перенаправит на Dashboard.
-Переменные окружения на этом этапе не требуются.
+Для local mode переменные окружения не требуются. Для Supabase mode добавьте переменные из
+раздела ниже в Vercel Project Settings → Environment Variables.
 
 ### Хранение данных на Vercel
 
-Reels по-прежнему сохраняются только в `localStorage` конкретного браузера. Публичный деплой
-не переносит данные между устройствами, браузерами или пользователями и не создаёт резервную
-копию. Это временный режим до подключения Supabase на следующем этапе.
+В local mode Reels сохраняются только в `localStorage` конкретного браузера. В Supabase mode
+данные записываются в облачную таблицу `reels`, но пока остаются общими для проекта, потому что
+авторизация пользователей ещё не подключена.
 
-## Проверка этапа 4
+## Supabase setup
+
+1. Создайте проект на [supabase.com](https://supabase.com).
+2. Откройте `SQL Editor`.
+3. Выполните SQL из `supabase/schema.sql`.
+4. В настройках проекта возьмите `Project URL` и `anon public key`.
+5. Создайте в корне проекта файл `.env.local`.
+6. Добавьте:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-public-key
+NEXT_PUBLIC_DATA_MODE=supabase
+```
+
+7. Перезапустите dev server.
+8. Откройте `/dashboard/settings` и нажмите `Test Supabase Connection`.
+
+Если credentials не заполнены или Supabase временно недоступен, provider автоматически
+использует localStorage. Чтобы принудительно оставить локальный режим:
+
+```dotenv
+NEXT_PUBLIC_DATA_MODE=local
+```
+
+На этом этапе авторизации нет, поэтому таблица не разделяет данные разных пользователей.
+Схема включает временную shared RLS policy и предназначена только для личного прототипа без
+чувствительных данных. Перед публичным multi-user запуском необходимо добавить Supabase Auth,
+поле `user_id` и заменить shared policy на owner-scoped RLS policies. Автоматический перенос
+localStorage → Supabase пока не выполняется.
+
+## Проверка этапа 5
 
 ```bash
 npm run typecheck
@@ -185,9 +234,8 @@ npm run start
 
 ## Следующий этап
 
-Этап 5 может включать подключение Supabase, перенос Reels из локального браузера в облачную
-базу и подготовку синхронизации между устройствами. Instagram API, настоящий AI API и
-авторизация пока не подключены.
+Этап 6 может включать Supabase Auth, `user_id`, RLS policies и управляемую миграцию Reels из
+localStorage в личное облачное пространство. Instagram API и настоящий AI API пока не подключены.
 
 ## Лицензия
 

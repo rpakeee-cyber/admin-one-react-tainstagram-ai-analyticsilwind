@@ -1,28 +1,47 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getReels, REELS_CHANGED_EVENT } from "../services/reelsStorage";
+import { getReels, REELS_CHANGED_EVENT } from "../services/reelsDataProvider";
 import type { Reel } from "../types";
 
 export const useReels = () => {
   const [reels, setReels] = useState<Reel[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const refresh = useCallback(() => {
-    setReels(getReels());
-    setIsReady(true);
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      setReels(await getReels());
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error
+          ? refreshError.message
+          : "Не удалось загрузить Reels.",
+      );
+    } finally {
+      setIsReady(true);
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    refresh();
-    window.addEventListener("storage", refresh);
-    window.addEventListener(REELS_CHANGED_EVENT, refresh);
+    const handleStorageChange = () => {
+      void refresh();
+    };
+
+    void refresh();
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener(REELS_CHANGED_EVENT, handleStorageChange);
 
     return () => {
-      window.removeEventListener("storage", refresh);
-      window.removeEventListener(REELS_CHANGED_EVENT, refresh);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(REELS_CHANGED_EVENT, handleStorageChange);
     };
   }, [refresh]);
 
-  return { reels, isReady, refresh };
+  return { reels, isReady, isLoading, error, refresh };
 };
