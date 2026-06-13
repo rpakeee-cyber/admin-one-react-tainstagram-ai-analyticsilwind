@@ -12,7 +12,24 @@
 - Chart.js
 - Redux Toolkit для состояния шаблона
 
-Backend, Instagram API и внешний AI API пока не используются.
+Instagram API и внешний AI API пока не используются. Supabase остаётся опциональным:
+local mode работает полностью автономно.
+
+## Этап 6
+
+Добавлены Supabase Auth и персональная изоляция данных:
+
+- вход по magic link через email на странице `/auth`;
+- сохранение и автоматическое обновление Supabase-сессии;
+- привязка каждого облачного Reel к `user_id`;
+- owner-scoped RLS policies для select, insert, update и delete;
+- Account и Data Storage states в Settings;
+- понятный notice в cloud mode, если пользователь не вошёл;
+- localStorage fallback и локальные Reels остаются нетронутыми;
+- подготовлен блок будущей миграции localStorage → Supabase.
+
+В `NEXT_PUBLIC_DATA_MODE=local` авторизация не требуется. В режиме `supabase` облачные данные
+доступны только после входа.
 
 ## Этап 5
 
@@ -88,11 +105,13 @@ reelscope.reels.v1
 
 - `src/types/index.ts` — типы Reel, темы, форматы и формы;
 - `src/data/demoData.ts` — демонстрационные Reels;
-- `src/services/reelsStorage.ts` — CRUD и работа с `localStorage`;
+- `src/services/reelsStorage.ts` — совместимый фасад для существующих CRUD-страниц;
 - `src/services/reelsLocalStorage.ts` — локальная реализация CRUD и сообщения между страницами;
+- `src/services/authService.ts` — magic link auth, session и auth state subscription;
 - `src/services/supabaseClient.ts` — безопасная инициализация Supabase client;
 - `src/services/reelsSupabaseStorage.ts` — облачный CRUD и маппинг колонок;
 - `src/services/reelsDataProvider.ts` — выбор режима и localStorage fallback;
+- `src/hooks/useAuth.ts` — клиентское состояние пользователя и сессии;
 - `src/services/aiRecommendationEngine.ts` — текстовые локальные рекомендации;
 - `src/hooks/useReels.ts` — клиентская подписка компонентов на изменения;
 - `src/utils/analytics.ts` — безопасные аналитические расчёты и группировки.
@@ -179,8 +198,7 @@ npx next dev
 ### Хранение данных на Vercel
 
 В local mode Reels сохраняются только в `localStorage` конкретного браузера. В Supabase mode
-данные записываются в облачную таблицу `reels`, но пока остаются общими для проекта, потому что
-авторизация пользователей ещё не подключена.
+каждая запись получает `user_id`, а RLS разрешает пользователю работать только со своими Reels.
 
 ## Supabase setup
 
@@ -207,13 +225,38 @@ NEXT_PUBLIC_DATA_MODE=supabase
 NEXT_PUBLIC_DATA_MODE=local
 ```
 
-На этом этапе авторизации нет, поэтому таблица не разделяет данные разных пользователей.
-Схема включает временную shared RLS policy и предназначена только для личного прототипа без
-чувствительных данных. Перед публичным multi-user запуском необходимо добавить Supabase Auth,
-поле `user_id` и заменить shared policy на owner-scoped RLS policies. Автоматический перенос
-localStorage → Supabase пока не выполняется.
+Автоматический перенос localStorage → Supabase пока не выполняется. Локальные записи остаются
+в браузере и будут перенесены отдельным управляемым действием на следующем этапе.
 
-## Проверка этапа 5
+## Supabase Auth setup
+
+1. Откройте свой проект в Supabase.
+2. Перейдите в `Authentication` → `Providers`.
+3. Убедитесь, что Email provider включён.
+4. Откройте `Authentication` → `URL Configuration`.
+5. Укажите корректный `Site URL`.
+6. Для локальной разработки добавьте redirect URL `http://localhost:3000/auth`.
+7. После Vercel deployment добавьте production URL вида
+   `https://your-project.vercel.app/auth`.
+8. Выполните обновлённый SQL из `supabase/schema.sql` в SQL Editor.
+9. Создайте `.env.local`:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-public-key
+NEXT_PUBLIC_DATA_MODE=supabase
+```
+
+10. Запустите проект через `npm run dev`.
+11. Откройте `http://localhost:3000/auth`.
+12. Введите email и откройте magic link из письма.
+13. Проверьте Account и Data Storage Mode на `/dashboard/settings`.
+
+Local mode работает без входа. Supabase mode требует активную сессию, а все запросы
+дополнительно защищены RLS по условию `auth.uid() = user_id`. Instagram API будет подключаться
+после auth, чтобы будущие токены были связаны с конкретным пользователем.
+
+## Проверка этапа 6
 
 ```bash
 npm run typecheck
@@ -234,8 +277,9 @@ npm run start
 
 ## Следующий этап
 
-Этап 6 может включать Supabase Auth, `user_id`, RLS policies и управляемую миграцию Reels из
-localStorage в личное облачное пространство. Instagram API и настоящий AI API пока не подключены.
+Этап 7 может включать безопасную миграцию Reels из localStorage в Supabase, профиль пользователя
+и подготовку защищённого хранения будущих Instagram credentials. Instagram API и настоящий AI
+API пока не подключены.
 
 ## Лицензия
 

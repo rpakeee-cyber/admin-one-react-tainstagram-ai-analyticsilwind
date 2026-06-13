@@ -13,6 +13,7 @@ import FooterBar from "./_components/FooterBar";
 import FormField from "../_components/FormField";
 import { Field, Form, Formik } from "formik";
 import MobileBottomNav from "./_components/MobileBottomNav";
+import CloudAuthNotice from "./_components/CloudAuthNotice";
 
 type Props = {
   children: ReactNode;
@@ -75,6 +76,7 @@ export default function LayoutAuthenticated({ children }: Props) {
           onAsideLgClose={() => setIsAsideLgActive(false)}
           onRouteChange={handleRouteChange}
         />
+        <CloudAuthNotice />
         {children}
         <MobileBottomNav />
         <FooterBar>

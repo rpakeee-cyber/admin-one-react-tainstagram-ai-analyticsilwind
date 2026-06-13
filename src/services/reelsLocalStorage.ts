@@ -63,6 +63,8 @@ export const getReels = () => {
   return storedReels === null ? demoReels : storedReels;
 };
 
+export const getStoredReels = () => readStoredReels() ?? [];
+
 export const saveReels = (reels: Reel[]) => {
   if (!canUseStorage()) {
     return reels;

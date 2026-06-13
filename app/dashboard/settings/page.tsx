@@ -1,22 +1,27 @@
 "use client";
 
 import {
+  mdiAccountCircleOutline,
   mdiBellOutline,
   mdiCloudSyncOutline,
   mdiContentSaveOutline,
   mdiDatabaseOutline,
   mdiInstagram,
+  mdiLoginVariant,
+  mdiLogoutVariant,
   mdiShieldCheckOutline,
 } from "@mdi/js";
 import { Field, Form, Formik } from "formik";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "../../_components/Button";
 import CardBox from "../../_components/CardBox";
 import FormField from "../../_components/FormField";
 import FormCheckRadio from "../../_components/FormField/CheckRadio";
 import Icon from "../../_components/Icon";
 import SectionMain from "../../_components/Section/Main";
+import { useAuth } from "../../../src/hooks/useAuth";
 import { getDataStorageConfig } from "../../../src/services/reelsDataProvider";
+import { getStoredReels } from "../../../src/services/reelsLocalStorage";
 import {
   testSupabaseConnection,
   type SupabaseConnectionResult,
@@ -26,6 +31,8 @@ import PageIntro from "../_components/Analytics/PageIntro";
 export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const storageConfig = getDataStorageConfig();
+  const { user, loading: authLoading, error: authError, isAuthenticated, signOut } = useAuth();
+  const [localReelsCount, setLocalReelsCount] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState<
     SupabaseConnectionResult["status"] | "not-tested" | "testing"
   >(storageConfig.supabaseConfigured ? "not-tested" : "not-configured");
@@ -34,6 +41,10 @@ export default function SettingsPage() {
       ? "Supabase настроен. Нажмите кнопку, чтобы проверить таблицу reels."
       : "Supabase credentials не настроены.",
   );
+
+  useEffect(() => {
+    setLocalReelsCount(getStoredReels().length);
+  }, []);
 
   const testConnection = async () => {
     setConnectionStatus("testing");
@@ -50,6 +61,21 @@ export default function SettingsPage() {
     testing: "Testing...",
     error: "Error",
   }[connectionStatus];
+
+  const accountStatus = !storageConfig.supabaseConfigured
+    ? "Supabase not configured"
+    : isAuthenticated
+      ? "Signed in"
+      : "Not signed in";
+
+  const storageModeLabel =
+    storageConfig.requestedMode === "local"
+      ? "Local browser storage"
+      : !storageConfig.supabaseConfigured
+        ? "Supabase not configured · fallback local"
+        : isAuthenticated
+          ? "Supabase cloud storage"
+          : "Sign in required";
 
   return (
     <SectionMain>
@@ -120,6 +146,69 @@ export default function SettingsPage() {
         <div className="space-y-6">
           <CardBox>
             <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-500/10 dark:text-fuchsia-300">
+                <Icon path={mdiAccountCircleOutline} size="23" w="" h="" />
+              </div>
+              <div>
+                <h2 className="font-bold">Account</h2>
+                <p className="text-sm text-gray-400">Supabase magic link authentication</p>
+              </div>
+            </div>
+
+            <div className="divide-y divide-gray-100 text-sm dark:divide-slate-800">
+              <div className="flex items-start justify-between gap-4 py-3">
+                <span className="text-gray-500 dark:text-slate-400">Auth status</span>
+                <span
+                  className={`text-right font-semibold ${
+                    isAuthenticated
+                      ? "text-emerald-600 dark:text-emerald-300"
+                      : "text-gray-600 dark:text-slate-300"
+                  }`}
+                >
+                  {authLoading ? "Checking..." : accountStatus}
+                </span>
+              </div>
+              {user?.email && (
+                <div className="flex items-start justify-between gap-4 py-3">
+                  <span className="text-gray-500 dark:text-slate-400">Email</span>
+                  <span className="max-w-48 truncate text-right font-semibold">{user.email}</span>
+                </div>
+              )}
+            </div>
+
+            {authError && (
+              <p className="mt-4 rounded-2xl bg-rose-50 p-4 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-200">
+                {authError}
+              </p>
+            )}
+
+            <div className="mt-5">
+              {isAuthenticated ? (
+                <Button
+                  label="Sign out"
+                  icon={mdiLogoutVariant}
+                  color="whiteDark"
+                  roundedFull
+                  className="w-full"
+                  disabled={authLoading}
+                  onClick={() => void signOut().catch(() => undefined)}
+                />
+              ) : (
+                <Button
+                  href="/auth"
+                  label="Sign in"
+                  icon={mdiLoginVariant}
+                  color="contrast"
+                  roundedFull
+                  className="w-full"
+                  disabled={!storageConfig.supabaseConfigured}
+                />
+              )}
+            </div>
+          </CardBox>
+
+          <CardBox>
+            <div className="mb-5 flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
                 <Icon path={mdiCloudSyncOutline} size="23" w="" h="" />
               </div>
@@ -133,8 +222,8 @@ export default function SettingsPage() {
               {[
                 [
                   "Current mode",
-                  storageConfig.effectiveMode === "supabase" ? "Supabase" : "Local",
-                  storageConfig.effectiveMode === "supabase",
+                  storageModeLabel,
+                  storageConfig.requestedMode === "local" || isAuthenticated,
                 ],
                 [
                   "Supabase URL configured",
@@ -180,27 +269,59 @@ export default function SettingsPage() {
                   создай Supabase project, добавь env-переменные и таблицу reels.
                 </p>
               )}
+              {storageConfig.requestedMode === "supabase" &&
+                storageConfig.supabaseConfigured &&
+                !isAuthenticated && (
+                  <p className="mt-2 font-semibold">
+                    Supabase mode требует входа. Облачные Reels доступны только после авторизации.
+                  </p>
+                )}
               {storageConfig.fallbackWarning && (
                 <p className="mt-2 font-semibold">{storageConfig.fallbackWarning}</p>
               )}
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="mt-5">
               <Button
                 label={connectionStatus === "testing" ? "Testing..." : "Test Supabase Connection"}
                 color="contrast"
                 roundedFull
-                disabled={!storageConfig.supabaseConfigured || connectionStatus === "testing"}
+                className="w-full"
+                disabled={
+                  !storageConfig.supabaseConfigured ||
+                  !isAuthenticated ||
+                  connectionStatus === "testing"
+                }
                 onClick={() => void testConnection()}
               />
-              <Button
-                label="Migration coming soon"
-                icon={mdiDatabaseOutline}
-                color="lightDark"
-                roundedFull
-                disabled
-              />
             </div>
+          </CardBox>
+
+          <CardBox>
+            <div className="mb-5 flex items-center gap-3">
+              <Icon path={mdiDatabaseOutline} size="23" className="text-violet-600" w="" h="" />
+              <div>
+                <h2 className="font-bold">Local data migration</h2>
+                <p className="text-sm text-gray-400">Подготовка переноса в личное облако</p>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-gray-50 p-4 dark:bg-slate-800/70">
+              <p className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                Local Reels
+              </p>
+              <p className="mt-2 text-2xl font-bold">{localReelsCount}</p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                Записи остаются в этом браузере до безопасной управляемой миграции.
+              </p>
+            </div>
+            <Button
+              label="Migration coming soon"
+              icon={mdiDatabaseOutline}
+              color="lightDark"
+              roundedFull
+              className="mt-5 w-full"
+              disabled
+            />
           </CardBox>
 
           <CardBox>

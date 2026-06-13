@@ -1,13 +1,11 @@
--- Instagram AI Analytics Dashboard: prototype storage schema.
--- This stage has no authentication, so all rows belong to one shared workspace.
--- Before using this schema in a public multi-user product:
--- 1. add user_id uuid references auth.users(id);
--- 2. replace the shared policy with owner-scoped RLS policies.
+-- Instagram AI Analytics Dashboard: authenticated per-user Reels storage.
+-- Run this file in Supabase SQL Editor after enabling Email authentication.
 
 create extension if not exists pgcrypto;
 
 create table if not exists public.reels (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
   title text not null,
   publish_date date not null,
   topic text,
@@ -28,8 +26,16 @@ create table if not exists public.reels (
   updated_at timestamptz default now()
 );
 
+-- Safe upgrade path for a table created during Stage 5.
+-- Existing rows without an owner remain hidden by RLS until they are migrated manually.
+alter table public.reels
+  add column if not exists user_id uuid references auth.users(id) on delete cascade;
+
 create index if not exists reels_publish_date_idx
   on public.reels (publish_date desc);
+
+create index if not exists reels_user_id_idx
+  on public.reels (user_id);
 
 create or replace function public.set_reels_updated_at()
 returns trigger
@@ -48,17 +54,38 @@ before update on public.reels
 for each row
 execute function public.set_reels_updated_at();
 
--- Prototype-only shared access for the browser anon key.
--- Do not store sensitive data until Supabase Auth, user_id, and RLS are added.
 alter table public.reels enable row level security;
 
 drop policy if exists "Prototype shared reels access" on public.reels;
+drop policy if exists "Users can select own reels" on public.reels;
+drop policy if exists "Users can insert own reels" on public.reels;
+drop policy if exists "Users can update own reels" on public.reels;
+drop policy if exists "Users can delete own reels" on public.reels;
 
-create policy "Prototype shared reels access"
+create policy "Users can select own reels"
 on public.reels
-for all
-to anon, authenticated
-using (true)
-with check (true);
+for select
+to authenticated
+using (auth.uid() = user_id);
 
-grant select, insert, update, delete on table public.reels to anon, authenticated;
+create policy "Users can insert own reels"
+on public.reels
+for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+create policy "Users can update own reels"
+on public.reels
+for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+create policy "Users can delete own reels"
+on public.reels
+for delete
+to authenticated
+using (auth.uid() = user_id);
+
+revoke all on table public.reels from anon;
+grant select, insert, update, delete on table public.reels to authenticated;

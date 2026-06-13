@@ -9,6 +9,7 @@ export {
 export {
   clearReels,
   consumeReelsNotice,
+  getStoredReels,
   saveReels,
   setReelsNotice,
 } from "./reelsLocalStorage";

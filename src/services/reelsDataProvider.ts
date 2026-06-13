@@ -1,4 +1,5 @@
 import type { ReelInput } from "../types";
+import { isAuthRequiredError } from "./authService";
 import {
   addReel as addLocalReel,
   deleteReel as deleteLocalReel,
@@ -51,6 +52,9 @@ const withFallback = async <T>(
     lastFallbackError = "";
     return result;
   } catch (error) {
+    if (isAuthRequiredError(error)) {
+      throw error;
+    }
     lastFallbackError = `${getErrorMessage(error)} Используется localStorage fallback.`;
     console.warn(lastFallbackError);
     return localAction();
@@ -69,7 +73,16 @@ export const getDataStorageConfig = () => ({
 
 export const getDataProviderWarning = () => lastFallbackError;
 
-export const getReels = () => withFallback(getReelsFromSupabase, getLocalReels);
+export const getReels = async () => {
+  try {
+    return await withFallback(getReelsFromSupabase, getLocalReels);
+  } catch (error) {
+    if (isAuthRequiredError(error)) {
+      return [];
+    }
+    throw error;
+  }
+};
 
 export const addReel = async (reel: ReelInput) => {
   const result = await withFallback(

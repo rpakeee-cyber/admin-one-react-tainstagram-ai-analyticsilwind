@@ -1,8 +1,10 @@
 import { reelFormats, reelTopics, type Reel, type ReelFormat, type ReelInput, type ReelTopic } from "../types";
+import { requireCurrentUser } from "./authService";
 import { requireSupabaseClient } from "./supabaseClient";
 
 type SupabaseReelRow = {
   id: string;
+  user_id: string;
   title: string;
   publish_date: string;
   topic: string | null;
@@ -112,10 +114,13 @@ const createStorageError = (action: string, error: unknown) => {
 };
 
 export const getReelsFromSupabase = async (): Promise<Reel[]> => {
+  const user = await requireCurrentUser();
+
   try {
     const { data, error } = await requireSupabaseClient()
       .from("reels")
       .select("*")
+      .eq("user_id", user.id)
       .order("publish_date", { ascending: false });
 
     if (error) throw error;
@@ -126,10 +131,15 @@ export const getReelsFromSupabase = async (): Promise<Reel[]> => {
 };
 
 export const addReelToSupabase = async (reel: ReelInput): Promise<Reel> => {
+  const user = await requireCurrentUser();
+
   try {
     const { data, error } = await requireSupabaseClient()
       .from("reels")
-      .insert(mapInputToRow(reel))
+      .insert({
+        ...mapInputToRow(reel),
+        user_id: user.id,
+      })
       .select("*")
       .single();
 
@@ -144,11 +154,14 @@ export const updateReelInSupabase = async (
   id: string,
   updates: Partial<ReelInput>,
 ): Promise<Reel | null> => {
+  const user = await requireCurrentUser();
+
   try {
     const { data, error } = await requireSupabaseClient()
       .from("reels")
       .update(mapUpdatesToRow(updates))
       .eq("id", id)
+      .eq("user_id", user.id)
       .select("*")
       .maybeSingle();
 
@@ -160,11 +173,14 @@ export const updateReelInSupabase = async (
 };
 
 export const deleteReelFromSupabase = async (id: string): Promise<boolean> => {
+  const user = await requireCurrentUser();
+
   try {
     const { data, error } = await requireSupabaseClient()
       .from("reels")
       .delete()
       .eq("id", id)
+      .eq("user_id", user.id)
       .select("id")
       .maybeSingle();
 
@@ -176,11 +192,14 @@ export const deleteReelFromSupabase = async (id: string): Promise<boolean> => {
 };
 
 export const getReelByIdFromSupabase = async (id: string): Promise<Reel | null> => {
+  const user = await requireCurrentUser();
+
   try {
     const { data, error } = await requireSupabaseClient()
       .from("reels")
       .select("*")
       .eq("id", id)
+      .eq("user_id", user.id)
       .maybeSingle();
 
     if (error) throw error;
