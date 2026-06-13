@@ -11,6 +11,7 @@ type Props = {
   title: string;
   buttonColor: ColorButtonKey;
   buttonLabel: string;
+  cancelLabel?: string;
   isActive: boolean;
   children: ReactNode;
   onConfirm: () => void;
@@ -21,6 +22,7 @@ const CardBoxModal = ({
   title,
   buttonColor,
   buttonLabel,
+  cancelLabel = "Cancel",
   isActive,
   children,
   onConfirm,
@@ -34,7 +36,7 @@ const CardBoxModal = ({
     <Buttons>
       <Button label={buttonLabel} color={buttonColor} onClick={onConfirm} isGrouped />
       {!!onCancel && (
-        <Button label="Cancel" color={buttonColor} outline onClick={onCancel} isGrouped />
+        <Button label={cancelLabel} color={buttonColor} outline onClick={onCancel} isGrouped />
       )}
     </Buttons>
   );

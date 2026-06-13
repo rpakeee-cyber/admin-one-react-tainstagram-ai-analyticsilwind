@@ -1,170 +1,130 @@
-# [Admin One &mdash; Free React Tailwind 4.x Admin Dashboard with dark mode](https://justboil.me/tailwind-admin-templates/free-react-dashboard/)
+# Instagram AI Analytics Dashboard
 
-[![version](https://img.shields.io/github/v/release/justboil/admin-one-react-tailwind)](https://justboil.me/tailwind-admin-templates/free-react-dashboard/)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://justboil.me/tailwind-admin-templates/free-react-dashboard/)
+Личный dashboard для ручного учёта Instagram Reels, анализа метрик, тем контента и будущих AI-рекомендаций. Проект основан на Admin One и сохраняет его responsive layout, sidebar, dark mode и Tailwind-компоненты.
 
-### Tailwind 4.x React with Next.js and TypeScript
+## Стек
 
-[![Free React Tailwind TypeScript admin dashboard with dark mode](https://static.justboil.me/templates/one/repo-tailwind-react.png?v=4)](https://justboil.github.io/admin-one-react-tailwind/)
+- Next.js 15 App Router
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- Formik
+- Chart.js
+- Redux Toolkit для состояния шаблона
 
-[![React TypeScript Tailwind white & dark styles](https://static.justboil.me/templates/one/repo-styles.png)](https://justboil.github.io/admin-one-react-tailwind/)
+Backend, Instagram API и внешний AI API пока не используются.
 
-### Tailwind 4.x React with Next.js and TypeScript
+## Этап 2
 
-**Admin One** is fast, beautiful and free React Next Tailwind CSS 4.x admin dashboard with TypeScript. 
+На втором этапе реализованы:
 
-* Built with **TypeScript**, **React**, **Tailwind CSS 4** framework & **Next.js** with **app router**
-* **React Redux** state library &mdash; [Info](https://react-redux.js.org/)
-* **Dark mode**
-* **Production CSS** is only **&thickapprox;38kb**
-* Reusable components
-* Free under MIT License
-* [Premium version](https://justboil.me/tailwind-admin-templates/react-dashboard/) available
+- добавление Reels через mobile-first форму;
+- хранение пользовательских данных в `localStorage`;
+- список Reels в виде карточек на mobile и таблицы на desktop;
+- детальная страница каждого Reel;
+- редактирование и удаление с подтверждением;
+- поиск по названию, hook и заметкам;
+- фильтры по теме и формату;
+- сортировка по дате, просмотрам, engagement, подписчикам и score;
+- Dashboard, который пересчитывается по сохранённым Reels;
+- локальные аналитические выводы без настоящего AI.
 
-## Table of Contents
+До первого пользовательского сохранения приложение показывает demo data. После добавления собственного Reel список переключается на пользовательские данные и demo-записи больше не смешиваются с ними.
 
-* [Vue version](#looking-for-vue-version)
-* [Responsive layout](#responsive-layout)
-  * [Mobile & tablet](#mobile--tablet)
-  * [Small laptops](#small-laptops-1024px)
-  * [Laptops & desktops](#laptops--desktops)
-* [Demo](#demo)
-  * [Free dashboard demo](#free-dashboard-demo)
-  * [Premium dashboard demo](#premium-dashboard-demo)
-* [Quick Start](#quick-start)
-  * [Get code & install](#get-code--install)
-  * [Builds](#builds)
-  * [Linting and formatting](#linting-and-formatting)
-* [Docs](#docs)
-* [Browser Support](#browser-support)
-* [Reporting Issues](#reporting-issues)
-* [Licensing](#licensing)
-* [Useful Links](#useful-links)
+## Как добавить Reel
 
-## Looking for Vue version?
+1. Откройте `/dashboard/add-reel`.
+2. Заполните название и дату публикации.
+3. Выберите тему и формат.
+4. Внесите доступные метрики.
+5. При желании добавьте hook, ссылку и заметки.
+6. Нажмите `Сохранить Reel`.
 
-This is **Tailwind React TypeScript** version
+После сохранения приложение перенаправит на `/dashboard/reels`. Запись останется доступной после перезагрузки страницы.
 
-Looking for **Tailwind Vue**? Check [Admin One - Vue Tailwind dashboard](https://github.com/justboil/admin-one-vue-tailwind) version
+## Где хранятся данные
 
-## Responsive layout
+Пользовательские Reels хранятся в `localStorage` текущего браузера под ключом:
 
-### Mobile & tablet
-
-Mobile layout with hidden aside menu and collapsable cards & tables
-
-[![Free React Tailwind CSS 4 admin dashboard](https://static.justboil.me/templates/one/one-tailwind-vue-mobile.png)](https://justboil.github.io/admin-one-react-tailwind/)
-
-### Small laptops 1024px
-
-Small laptop layout with show/hide aside menu option
-
-[![Free React Tailwind CSS 4 admin dashboard](https://static.justboil.me/templates/one/one-tailwind-vue-1024.png)](https://justboil.github.io/admin-one-react-tailwind/)
-
-[![Free React Tailwind CSS 4 admin dashboard](https://static.justboil.me/templates/one/one-tailwind-vue-1024-menu-open.png)](https://justboil.github.io/admin-one-react-tailwind/)
-
-### Laptops & desktops
-
-Classic layout with aside menus on the left
-
-[![Free React Tailwind CSS 4 admin dashboard](https://static.justboil.me/templates/one/one-tailwind-vue-widescreen.png)](https://justboil.github.io/admin-one-react-tailwind/)
-
-## Demo
-
-### Free Dashboard Demo
-
-https://justboil.github.io/admin-one-react-tailwind/
-
-### Premium Dashboard Demo
-
-Premium version is coming soon
-
-## Quick Start
-
-Get code & install. Then `dev` or `build`
-
-* [Get code & install](#get-code--install)
-* [Builds](#builds)
-* [Linting and formatting](#linting-and-formatting)
-
-### Get code & install
-
-#### Get the repo
-
-* [Create new repo](https://github.com/justboil/admin-one-react-tailwind/generate) with this template
-* &hellip; or clone this repo on GitHub
-* &hellip; or [download .zip](https://github.com/justboil/admin-one-react-tailwind/archive/master.zip) from GitHub
-
-#### Install
-
-`cd` to project's dir and run `npm install`
-
-### Builds
-
-Build are handled by Next.js CLI &mdash; [Info](https://nextjs.org/docs/app/api-reference/cli/next)
-
-#### Hot-reloads for development
-
+```text
+reelscope.reels.v1
 ```
+
+Данные не отправляются на сервер и не синхронизируются между устройствами или браузерами.
+
+Основные файлы:
+
+- `src/types/index.ts` — типы Reel, темы, форматы и формы;
+- `src/data/demoData.ts` — демонстрационные Reels;
+- `src/services/reelsStorage.ts` — CRUD и работа с `localStorage`;
+- `src/hooks/useReels.ts` — клиентская подписка компонентов на изменения;
+- `src/utils/analytics.ts` — аналитические расчёты.
+
+## Расчёты
+
+### Engagement rate
+
+```text
+(likes + comments + saves + shares) / reach * 100
+```
+
+Если `reach` равен нулю, используется `views`.
+
+### Follower conversion
+
+```text
+newFollowers / views * 100
+```
+
+### Save, share и comment rate
+
+```text
+saves / views * 100
+shares / views * 100
+comments / views * 100
+```
+
+### Reel score
+
+Score рассчитывается по шкале от 1 до 10. Учитываются просмотры относительно среднего, engagement rate, сохранения, репосты, новые подписчики и retention rate. Все вычисления защищены от деления на ноль, `NaN` и `Infinity`.
+
+## Локальный запуск
+
+Требуется Node.js `20.19+` или `22.12+`.
+
+```bash
+npm install
 npm run dev
 ```
 
-#### Builds and minifies for production
+Откройте:
 
+```text
+http://localhost:3000
 ```
+
+## Проверка этапа 2
+
+```bash
+npx tsc --noEmit
 npm run build
 ```
 
-#### Exports build for static hosts
+Для ручной проверки:
 
-Set `IS_OUTPUT_EXPORT` environment variable to `true` (or set `output` in next.config.ts)
+1. Добавьте Reel.
+2. Перезагрузите страницу и убедитесь, что Reel сохранился.
+3. Откройте Details.
+4. Отредактируйте запись.
+5. Проверьте поиск, фильтры и сортировку.
+6. Удалите Reel и подтвердите действие.
+7. Откройте Dashboard и проверьте пересчитанные показатели.
+8. Проверьте mobile bottom navigation и desktop sidebar.
 
-### Linting & Formatting
+## Следующий этап
 
-#### Lint
+Этап 3 может включать импорт данных, расширенную аналитику по периодам, резервное копирование, подготовку API-слоя и первые AI-рекомендации на основе реальных данных.
 
-```
-npm run lint
-```
+## Лицензия
 
-#### Format with prettier
-
-```
-npm run format
-```
-
-## Docs
-
-Docs are coming soon
-
-## Browser Support
-
-We try to make sure Dashboard works well in the latest versions of all major browsers
-
-<img src="https://justboil.me/images/browsers-svg/chrome.svg" width="64" height="64" alt="Chrome"> <img src="https://justboil.me/images/browsers-svg/firefox.svg" width="64" height="64" alt="Firefox"> <img src="https://justboil.me/images/browsers-svg/edge.svg" width="64" height="64" alt="Edge"> <img src="https://justboil.me/images/browsers-svg/safari.svg" width="64" height="64" alt="Safari"> <img src="https://justboil.me/images/browsers-svg/opera.svg" width="64" height="64" alt="Opera">
-
-## Reporting Issues
-
-JustBoil's free items are limited to community support on GitHub.
-
-The issue list is reserved exclusively for bug reports and feature requests. That means we do not accept usage questions. If you open an issue that does not conform to the requirements, it will be closed.
-
-1. Make sure that you are using the latest version of the Dashboard. Issues for outdated versions are irrelevant
-2. Provide steps to reproduce
-3. Provide an expected behavior
-4. Describe what is actually happening
-5. Platform, Browser & version as some issues may be browser specific
-
-## Licensing
-
-- Copyright &copy; 2019-2025 JustBoil.me (https://justboil.me)
-- Licensed under MIT
-
-## Useful Links
-
-- [JustBoil.me](https://justboil.me/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Next.js Docs](https://nextjs.org/docs/app/getting-started)
-- [React.js Docs](https://react.dev/learn)
-- [Redux Docs](https://redux.js.org/introduction/getting-started) & [React-Redux Docs](https://react-redux.js.org/introduction/getting-started)
-- [TypeScript Docs](https://www.typescriptlang.org/docs/)
-- [TypeScript ESLint Docs](https://typescript-eslint.io/docs/)
+Основа Admin One распространяется по лицензии MIT. См. `LICENSE`.

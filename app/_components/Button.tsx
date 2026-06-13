@@ -6,6 +6,7 @@ import type { ColorButtonKey } from "../_interfaces";
 
 type Props = {
   label?: string | null;
+  ariaLabel?: string;
   icon?: string;
   iconSize?: string | number;
   href?: string;
@@ -25,6 +26,7 @@ type Props = {
 
 export default function Button({
   label,
+  ariaLabel,
   icon,
   iconSize,
   href,
@@ -84,7 +86,7 @@ export default function Button({
 
   if (href && !disabled) {
     return (
-      <Link href={href} target={target} className={componentClassString}>
+      <Link href={href} target={target} className={componentClassString} aria-label={ariaLabel}>
         {componentChildren}
       </Link>
     );
@@ -96,6 +98,7 @@ export default function Button({
       className: componentClassString,
       type: type ?? "button",
       target,
+      "aria-label": ariaLabel,
       disabled,
       onClick,
     },

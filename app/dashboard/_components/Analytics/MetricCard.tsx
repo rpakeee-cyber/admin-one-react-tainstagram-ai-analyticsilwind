@@ -42,17 +42,25 @@ export default function MetricCard({
         </div>
       </div>
       <div className="mt-4 flex items-center gap-2 text-xs">
-        <span
-          className={`rounded-full px-2 py-1 font-semibold ${
-            metric.direction === "down"
-              ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300"
-              : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"
-          }`}
-        >
-          {metric.change > 0 ? "+" : ""}
-          {metric.change}%
-        </span>
-        <span className="text-gray-400 dark:text-slate-500">к прошлому периоду</span>
+        {metric.direction === "neutral" ? (
+          <span className="rounded-full bg-gray-100 px-2 py-1 font-semibold text-gray-500 dark:bg-slate-800 dark:text-slate-400">
+            По сохранённым Reels
+          </span>
+        ) : (
+          <>
+            <span
+              className={`rounded-full px-2 py-1 font-semibold ${
+                metric.direction === "down"
+                  ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300"
+                  : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"
+              }`}
+            >
+              {metric.change > 0 ? "+" : ""}
+              {metric.change}%
+            </span>
+            <span className="text-gray-400 dark:text-slate-500">к прошлому периоду</span>
+          </>
+        )}
       </div>
     </div>
   );

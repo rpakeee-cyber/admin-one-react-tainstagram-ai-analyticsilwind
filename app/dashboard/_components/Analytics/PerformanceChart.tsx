@@ -23,7 +23,7 @@ type Props = {
 export default function PerformanceChart({ reels }: Props) {
   const orderedReels = [...reels].reverse();
   const data = {
-    labels: orderedReels.map((reel) => formatDate(reel.publishedAt)),
+    labels: orderedReels.map((reel) => formatDate(reel.publishDate, { year: undefined })),
     datasets: [
       {
         label: "Просмотры",

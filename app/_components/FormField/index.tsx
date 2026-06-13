@@ -7,6 +7,7 @@ type Props = {
   label?: string;
   labelFor?: string;
   help?: string;
+  error?: string;
   icon?: string;
   isBorderless?: boolean;
   isTransparent?: boolean;
@@ -43,6 +44,7 @@ const FormField = ({ children, ...props }: Props) => {
       {props.help && (
         <div className="mt-1 text-xs text-gray-500 dark:text-slate-400">{props.help}</div>
       )}
+      {props.error && <div className="mt-1 text-xs font-medium text-rose-600">{props.error}</div>}
     </div>
   );
 };

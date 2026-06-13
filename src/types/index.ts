@@ -1,20 +1,73 @@
-export type ReelStatus = "published" | "draft" | "scheduled";
+export const reelTopics = [
+  "Работа",
+  "Спорт",
+  "Влог",
+  "Бизнес",
+  "Kaspi",
+  "Церковь",
+  "Личная мысль",
+  "Обучение",
+  "Тренд",
+  "Другое",
+] as const;
+
+export const reelFormats = [
+  "Talking Head",
+  "Vlog",
+  "POV",
+  "Storytelling",
+  "Tutorial",
+  "Trend",
+  "Before/After",
+  "Day in Life",
+  "Motivation",
+  "Other",
+] as const;
+
+export type ReelTopic = (typeof reelTopics)[number];
+export type ReelFormat = (typeof reelFormats)[number];
 
 export type Reel = {
   id: string;
   title: string;
-  topic: string;
-  publishedAt: string;
+  publishDate: string;
+  topic: ReelTopic;
+  format: ReelFormat;
   views: number;
+  reach: number;
   likes: number;
   comments: number;
   saves: number;
   shares: number;
   newFollowers: number;
-  score: number;
-  duration: number;
-  status: ReelStatus;
-  accent: string;
+  durationSeconds: number;
+  retentionRate: number;
+  hook: string;
+  link: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ReelInput = Omit<Reel, "id" | "createdAt" | "updatedAt">;
+
+export type ReelFormValues = {
+  title: string;
+  publishDate: string;
+  topic: ReelTopic;
+  format: ReelFormat;
+  views: string;
+  reach: string;
+  likes: string;
+  comments: string;
+  saves: string;
+  shares: string;
+  newFollowers: string;
+  durationSeconds: string;
+  retentionRate: string;
+  hook: string;
+  link: string;
+  notes: string;
 };
 
 export type Metric = {
@@ -34,6 +87,13 @@ export type AIInsight = {
   impact: string;
   priority: "high" | "medium" | "low";
   category: "hook" | "topic" | "timing" | "format";
+};
+
+export type ReelInsight = {
+  strength: string;
+  weakness: string;
+  repeatTopic: string;
+  nextStep: string;
 };
 
 export type ContentPlanStatus = "idea" | "script" | "ready" | "scheduled";
