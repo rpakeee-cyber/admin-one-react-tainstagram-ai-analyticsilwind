@@ -5,6 +5,8 @@ export const AUTH_REQUIRED_MESSAGE = "Чтобы использовать обл
 export type AuthUser = {
   id: string;
   email?: string;
+  app_metadata?: Record<string, unknown>;
+  user_metadata?: Record<string, unknown>;
 };
 
 export type AuthSession = {
@@ -81,6 +83,29 @@ export const signInWithEmail = async (email: string) => {
 
   if (error) {
     throw new Error(`Не удалось отправить ссылку: ${error.message}`);
+  }
+
+  return data;
+};
+
+export const signInWithGoogle = async () => {
+  if (!supabaseClient || !supabaseConfig.isConfigured) {
+    throw new Error("Supabase не настроен. Добавьте URL и anon key в .env.local.");
+  }
+
+  if (typeof window === "undefined") {
+    throw new Error("Google login доступен только в браузере.");
+  }
+
+  const { data, error } = await supabaseClient.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/dashboard`,
+    },
+  });
+
+  if (error) {
+    throw new Error(`Не удалось войти через Google: ${error.message}`);
   }
 
   return data;

@@ -256,6 +256,25 @@ Local mode работает без входа. Supabase mode требует ак
 дополнительно защищены RLS по условию `auth.uid() = user_id`. Instagram API будет подключаться
 после auth, чтобы будущие токены были связаны с конкретным пользователем.
 
+## Google OAuth setup
+
+1. В Supabase откройте `Authentication` → `Providers` → `Google`.
+2. В Google Cloud Console создайте OAuth Client для web application.
+3. Скопируйте `Authorized redirect URI` из настроек Google provider в Supabase и добавьте его
+   в Google OAuth Client.
+4. Скопируйте Google `Client ID` и `Client Secret` в настройки provider в Supabase.
+5. В Supabase `Authentication` → `URL Configuration` укажите:
+   - Site URL `http://localhost:3000` для локальной разработки;
+   - production Vercel URL, если приложение уже опубликовано;
+   - соответствующие redirect URLs для локального и production-адресов.
+6. Сохраните настройки и запустите проект.
+7. Откройте `/auth`.
+8. Нажмите `Continue with Google`.
+
+Email magic link остаётся доступным рядом с Google login. Google OAuth работает только после
+включения и настройки provider в Supabase. Apple login можно добавить позже через Supabase Auth
+аналогичным способом, но для него нужна отдельная настройка Apple Developer.
+
 ## Проверка этапа 6
 
 ```bash

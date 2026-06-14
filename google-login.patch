@@ -1,0 +1,318 @@
+diff --git a/src/services/authService.ts b/src/services/authService.ts
+index 0ef4e12..814461e 100644
+--- a/src/services/authService.ts
++++ b/src/services/authService.ts
+@@ -5,6 +5,8 @@ export const AUTH_REQUIRED_MESSAGE = "Чтобы использовать обл
+ export type AuthUser = {
+   id: string;
+   email?: string;
++  app_metadata?: Record<string, unknown>;
++  user_metadata?: Record<string, unknown>;
+ };
+ 
+ export type AuthSession = {
+@@ -86,6 +88,29 @@ export const signInWithEmail = async (email: string) => {
+   return data;
+ };
+ 
++export const signInWithGoogle = async () => {
++  if (!supabaseClient || !supabaseConfig.isConfigured) {
++    throw new Error("Supabase не настроен. Добавьте URL и anon key в .env.local.");
++  }
++
++  if (typeof window === "undefined") {
++    throw new Error("Google login доступен только в браузере.");
++  }
++
++  const { data, error } = await supabaseClient.auth.signInWithOAuth({
++    provider: "google",
++    options: {
++      redirectTo: `${window.location.origin}/dashboard`,
++    },
++  });
++
++  if (error) {
++    throw new Error(`Не удалось войти через Google: ${error.message}`);
++  }
++
++  return data;
++};
++
+ export const signOut = async () => {
+   if (!supabaseClient) {
+     return;
+diff --git a/src/hooks/useAuth.ts b/src/hooks/useAuth.ts
+index eeccf49..0bcad70 100644
+--- a/src/hooks/useAuth.ts
++++ b/src/hooks/useAuth.ts
+@@ -7,6 +7,7 @@ import {
+   getSession,
+   onAuthStateChange,
+   signInWithEmail as sendMagicLink,
++  signInWithGoogle as startGoogleSignIn,
+   signOut as endSession,
+ } from "../services/authService";
+ 
+@@ -64,6 +65,21 @@ export const useAuth = () => {
+     }
+   }, []);
+ 
++  const signInWithGoogle = useCallback(async () => {
++    setLoading(true);
++    setError("");
++    try {
++      await startGoogleSignIn();
++    } catch (signInError) {
++      const message =
++        signInError instanceof Error ? signInError.message : "Не удалось войти через Google.";
++      setError(message);
++      throw signInError;
++    } finally {
++      setLoading(false);
++    }
++  }, []);
++
+   const signOut = useCallback(async () => {
+     setLoading(true);
+     setError("");
+@@ -87,6 +103,7 @@ export const useAuth = () => {
+     error,
+     isAuthenticated: Boolean(user),
+     signInWithEmail,
++    signInWithGoogle,
+     signOut,
+   };
+ };
+diff --git a/app/auth/page.tsx b/app/auth/page.tsx
+index f5e2edb..00c224d 100644
+--- a/app/auth/page.tsx
++++ b/app/auth/page.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { mdiCheckCircleOutline, mdiEmailOutline, mdiInstagram } from "@mdi/js";
++import { mdiCheckCircleOutline, mdiEmailOutline, mdiGoogle, mdiInstagram } from "@mdi/js";
+ import { Field, Form, Formik, type FormikErrors } from "formik";
+ import { useRouter } from "next/navigation";
+ import { useEffect, useState } from "react";
+@@ -18,7 +18,7 @@ type AuthFormValues = {
+ 
+ export default function AuthPage() {
+   const router = useRouter();
+-  const { isAuthenticated, loading, error, signInWithEmail } = useAuth();
++  const { isAuthenticated, loading, error, signInWithEmail, signInWithGoogle } = useAuth();
+   const [success, setSuccess] = useState(false);
+ 
+   useEffect(() => {
+@@ -49,7 +49,7 @@ export default function AuthPage() {
+           </p>
+           <h1 className="mt-2 text-2xl font-bold">Вход в аккаунт</h1>
+           <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-slate-400">
+-            Мы отправим ссылку для входа на почту. Пароль не нужен.
++            Войдите через Google или получите magic link на почту. Пароль не нужен.
+           </p>
+         </div>
+ 
+@@ -60,64 +60,87 @@ export default function AuthPage() {
+             <p className="mt-1 text-sm">Откройте magic link, чтобы завершить вход.</p>
+           </div>
+         ) : (
+-          <Formik<AuthFormValues>
+-            initialValues={{ email: "" }}
+-            validate={validate}
+-            onSubmit={async (values, actions) => {
+-              try {
+-                await signInWithEmail(values.email);
+-                setSuccess(true);
+-              } catch {
+-                setSuccess(false);
+-              } finally {
+-                actions.setSubmitting(false);
+-              }
+-            }}
+-          >
+-            {({ errors, touched, isSubmitting }) => (
+-              <Form className="mt-6">
+-                <FormField
+-                  label="Email"
+-                  labelFor="email"
+-                  error={touched.email ? errors.email : undefined}
+-                  help="На этот адрес придёт одноразовая ссылка"
+-                >
+-                  {({ className }) => (
+-                    <Field
+-                      id="email"
+-                      name="email"
+-                      type="email"
+-                      autoComplete="email"
+-                      placeholder="you@example.com"
+-                      className={className}
+-                    />
+-                  )}
+-                </FormField>
++          <>
++            <div className="mt-6">
++              <Button
++                label={loading ? "Подключаем..." : "Continue with Google"}
++                icon={mdiGoogle}
++                color="whiteDark"
++                roundedFull
++                className="w-full"
++                disabled={loading || !supabaseConfig.isConfigured}
++                onClick={() => void signInWithGoogle().catch(() => undefined)}
++              />
++            </div>
++
++            <div className="my-6 flex items-center gap-3">
++              <div className="h-px flex-1 bg-gray-100 dark:bg-slate-800" />
++              <span className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
++                or continue with email
++              </span>
++              <div className="h-px flex-1 bg-gray-100 dark:bg-slate-800" />
++            </div>
+ 
+-                {error && (
+-                  <div className="mb-5 rounded-2xl bg-rose-50 p-4 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-200">
+-                    {error}
+-                  </div>
+-                )}
++            <Formik<AuthFormValues>
++              initialValues={{ email: "" }}
++              validate={validate}
++              onSubmit={async (values, actions) => {
++                try {
++                  await signInWithEmail(values.email);
++                  setSuccess(true);
++                } catch {
++                  setSuccess(false);
++                } finally {
++                  actions.setSubmitting(false);
++                }
++              }}
++            >
++              {({ errors, touched, isSubmitting }) => (
++                <Form>
++                  <FormField
++                    label="Email"
++                    labelFor="email"
++                    error={touched.email ? errors.email : undefined}
++                    help="На этот адрес придёт одноразовая ссылка"
++                  >
++                    {({ className }) => (
++                      <Field
++                        id="email"
++                        name="email"
++                        type="email"
++                        autoComplete="email"
++                        placeholder="you@example.com"
++                        className={className}
++                      />
++                    )}
++                  </FormField>
+ 
+-                {!supabaseConfig.isConfigured && (
+-                  <div className="mb-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
+-                    Supabase не настроен. Local mode продолжает работать без входа.
+-                  </div>
+-                )}
++                  {error && (
++                    <div className="mb-5 rounded-2xl bg-rose-50 p-4 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-200">
++                      {error}
++                    </div>
++                  )}
++
++                  {!supabaseConfig.isConfigured && (
++                    <div className="mb-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
++                      Supabase не настроен. Google и email login недоступны, но Local mode
++                      продолжает работать без входа.
++                    </div>
++                  )}
+ 
+-                <Button
+-                  type="submit"
+-                  label={isSubmitting || loading ? "Отправляем..." : "Войти по email"}
+-                  icon={mdiEmailOutline}
+-                  color="contrast"
+-                  roundedFull
+-                  className="w-full"
+-                  disabled={isSubmitting || loading || !supabaseConfig.isConfigured}
+-                />
+-              </Form>
+-            )}
+-          </Formik>
++                  <Button
++                    type="submit"
++                    label={isSubmitting || loading ? "Отправляем..." : "Войти по email"}
++                    icon={mdiEmailOutline}
++                    color="contrast"
++                    roundedFull
++                    className="w-full"
++                    disabled={isSubmitting || loading || !supabaseConfig.isConfigured}
++                  />
++                </Form>
++              )}
++            </Formik>
++          </>
+         )}
+ 
+         <div className="mt-6 border-t border-gray-100 pt-5 text-center dark:border-slate-800">
+diff --git a/app/dashboard/settings/page.tsx b/app/dashboard/settings/page.tsx
+index 0c4146a..9034b6f 100644
+--- a/app/dashboard/settings/page.tsx
++++ b/app/dashboard/settings/page.tsx
+@@ -67,6 +67,12 @@ export default function SettingsPage() {
+     : isAuthenticated
+       ? "Signed in"
+       : "Not signed in";
++  const authProvider =
++    typeof user?.app_metadata?.provider === "string"
++      ? user.app_metadata.provider
++      : typeof user?.user_metadata?.provider === "string"
++        ? user.user_metadata.provider
++        : null;
+ 
+   const storageModeLabel =
+     storageConfig.requestedMode === "local"
+@@ -174,6 +180,12 @@ export default function SettingsPage() {
+                   <span className="max-w-48 truncate text-right font-semibold">{user.email}</span>
+                 </div>
+               )}
++              {authProvider && (
++                <div className="flex items-start justify-between gap-4 py-3">
++                  <span className="text-gray-500 dark:text-slate-400">Auth provider</span>
++                  <span className="text-right font-semibold capitalize">{authProvider}</span>
++                </div>
++              )}
+             </div>
+ 
+             {authError && (
+diff --git a/README.md b/README.md
+index 27a9a0f..0231dec 100644
+--- a/README.md
++++ b/README.md
+@@ -256,6 +256,25 @@ Local mode работает без входа. Supabase mode требует ак
+ дополнительно защищены RLS по условию `auth.uid() = user_id`. Instagram API будет подключаться
+ после auth, чтобы будущие токены были связаны с конкретным пользователем.
+ 
++## Google OAuth setup
++
++1. В Supabase откройте `Authentication` → `Providers` → `Google`.
++2. В Google Cloud Console создайте OAuth Client для web application.
++3. Скопируйте `Authorized redirect URI` из настроек Google provider в Supabase и добавьте его
++   в Google OAuth Client.
++4. Скопируйте Google `Client ID` и `Client Secret` в настройки provider в Supabase.
++5. В Supabase `Authentication` → `URL Configuration` укажите:
++   - Site URL `http://localhost:3000` для локальной разработки;
++   - production Vercel URL, если приложение уже опубликовано;
++   - соответствующие redirect URLs для локального и production-адресов.
++6. Сохраните настройки и запустите проект.
++7. Откройте `/auth`.
++8. Нажмите `Continue with Google`.
++
++Email magic link остаётся доступным рядом с Google login. Google OAuth работает только после
++включения и настройки provider в Supabase. Apple login можно добавить позже через Supabase Auth
++аналогичным способом, но для него нужна отдельная настройка Apple Developer.
++
+ ## Проверка этапа 6
+ 
+ ```bash

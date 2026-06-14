@@ -7,6 +7,7 @@ import {
   getSession,
   onAuthStateChange,
   signInWithEmail as sendMagicLink,
+  signInWithGoogle as startGoogleSignIn,
   signOut as endSession,
 } from "../services/authService";
 
@@ -64,6 +65,21 @@ export const useAuth = () => {
     }
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      await startGoogleSignIn();
+    } catch (signInError) {
+      const message =
+        signInError instanceof Error ? signInError.message : "Не удалось войти через Google.";
+      setError(message);
+      throw signInError;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -87,6 +103,7 @@ export const useAuth = () => {
     error,
     isAuthenticated: Boolean(user),
     signInWithEmail,
+    signInWithGoogle,
     signOut,
   };
 };

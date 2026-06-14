@@ -67,6 +67,12 @@ export default function SettingsPage() {
     : isAuthenticated
       ? "Signed in"
       : "Not signed in";
+  const authProvider =
+    typeof user?.app_metadata?.provider === "string"
+      ? user.app_metadata.provider
+      : typeof user?.user_metadata?.provider === "string"
+        ? user.user_metadata.provider
+        : null;
 
   const storageModeLabel =
     storageConfig.requestedMode === "local"
@@ -172,6 +178,12 @@ export default function SettingsPage() {
                 <div className="flex items-start justify-between gap-4 py-3">
                   <span className="text-gray-500 dark:text-slate-400">Email</span>
                   <span className="max-w-48 truncate text-right font-semibold">{user.email}</span>
+                </div>
+              )}
+              {authProvider && (
+                <div className="flex items-start justify-between gap-4 py-3">
+                  <span className="text-gray-500 dark:text-slate-400">Auth provider</span>
+                  <span className="text-right font-semibold capitalize">{authProvider}</span>
                 </div>
               )}
             </div>

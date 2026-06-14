@@ -1,6 +1,6 @@
 "use client";
 
-import { mdiCheckCircleOutline, mdiEmailOutline, mdiInstagram } from "@mdi/js";
+import { mdiCheckCircleOutline, mdiEmailOutline, mdiGoogle, mdiInstagram } from "@mdi/js";
 import { Field, Form, Formik, type FormikErrors } from "formik";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -18,7 +18,7 @@ type AuthFormValues = {
 
 export default function AuthPage() {
   const router = useRouter();
-  const { isAuthenticated, loading, error, signInWithEmail } = useAuth();
+  const { isAuthenticated, loading, error, signInWithEmail, signInWithGoogle } = useAuth();
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function AuthPage() {
           </p>
           <h1 className="mt-2 text-2xl font-bold">Вход в аккаунт</h1>
           <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-slate-400">
-            Мы отправим ссылку для входа на почту. Пароль не нужен.
+            Войдите через Google или получите magic link на почту. Пароль не нужен.
           </p>
         </div>
 
@@ -60,64 +60,87 @@ export default function AuthPage() {
             <p className="mt-1 text-sm">Откройте magic link, чтобы завершить вход.</p>
           </div>
         ) : (
-          <Formik<AuthFormValues>
-            initialValues={{ email: "" }}
-            validate={validate}
-            onSubmit={async (values, actions) => {
-              try {
-                await signInWithEmail(values.email);
-                setSuccess(true);
-              } catch {
-                setSuccess(false);
-              } finally {
-                actions.setSubmitting(false);
-              }
-            }}
-          >
-            {({ errors, touched, isSubmitting }) => (
-              <Form className="mt-6">
-                <FormField
-                  label="Email"
-                  labelFor="email"
-                  error={touched.email ? errors.email : undefined}
-                  help="На этот адрес придёт одноразовая ссылка"
-                >
-                  {({ className }) => (
-                    <Field
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="you@example.com"
-                      className={className}
-                    />
+          <>
+            <div className="mt-6">
+              <Button
+                label={loading ? "Подключаем..." : "Continue with Google"}
+                icon={mdiGoogle}
+                color="whiteDark"
+                roundedFull
+                className="w-full"
+                disabled={loading || !supabaseConfig.isConfigured}
+                onClick={() => void signInWithGoogle().catch(() => undefined)}
+              />
+            </div>
+
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-gray-100 dark:bg-slate-800" />
+              <span className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                or continue with email
+              </span>
+              <div className="h-px flex-1 bg-gray-100 dark:bg-slate-800" />
+            </div>
+
+            <Formik<AuthFormValues>
+              initialValues={{ email: "" }}
+              validate={validate}
+              onSubmit={async (values, actions) => {
+                try {
+                  await signInWithEmail(values.email);
+                  setSuccess(true);
+                } catch {
+                  setSuccess(false);
+                } finally {
+                  actions.setSubmitting(false);
+                }
+              }}
+            >
+              {({ errors, touched, isSubmitting }) => (
+                <Form>
+                  <FormField
+                    label="Email"
+                    labelFor="email"
+                    error={touched.email ? errors.email : undefined}
+                    help="На этот адрес придёт одноразовая ссылка"
+                  >
+                    {({ className }) => (
+                      <Field
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        className={className}
+                      />
+                    )}
+                  </FormField>
+
+                  {error && (
+                    <div className="mb-5 rounded-2xl bg-rose-50 p-4 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-200">
+                      {error}
+                    </div>
                   )}
-                </FormField>
 
-                {error && (
-                  <div className="mb-5 rounded-2xl bg-rose-50 p-4 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-200">
-                    {error}
-                  </div>
-                )}
+                  {!supabaseConfig.isConfigured && (
+                    <div className="mb-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
+                      Supabase не настроен. Google и email login недоступны, но Local mode
+                      продолжает работать без входа.
+                    </div>
+                  )}
 
-                {!supabaseConfig.isConfigured && (
-                  <div className="mb-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
-                    Supabase не настроен. Local mode продолжает работать без входа.
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  label={isSubmitting || loading ? "Отправляем..." : "Войти по email"}
-                  icon={mdiEmailOutline}
-                  color="contrast"
-                  roundedFull
-                  className="w-full"
-                  disabled={isSubmitting || loading || !supabaseConfig.isConfigured}
-                />
-              </Form>
-            )}
-          </Formik>
+                  <Button
+                    type="submit"
+                    label={isSubmitting || loading ? "Отправляем..." : "Войти по email"}
+                    icon={mdiEmailOutline}
+                    color="contrast"
+                    roundedFull
+                    className="w-full"
+                    disabled={isSubmitting || loading || !supabaseConfig.isConfigured}
+                  />
+                </Form>
+              )}
+            </Formik>
+          </>
         )}
 
         <div className="mt-6 border-t border-gray-100 pt-5 text-center dark:border-slate-800">
